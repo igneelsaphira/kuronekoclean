@@ -8,6 +8,21 @@ WebBrowser.maybeCompleteAuthSession();
 
 const AuthContext = createContext();
 const OPTIONAL_AUTH_WINDOW_MS = 5 * 60 * 1000;
+const NATIVE_CALLBACK = 'kuroclean://auth/callback';
+
+function getWebRedirectUri() {
+  const configuredSiteUrl = process.env.EXPO_PUBLIC_SITE_URL?.trim();
+
+  if (configuredSiteUrl) {
+    return configuredSiteUrl.replace(/\/+$/, '');
+  }
+
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+
+  return null;
+}
 
 function parseResultUrl(url) {
   try {
@@ -82,12 +97,13 @@ export function AuthProvider({ children }) {
     setAuthError(null);
 
     try {
-      const redirectTo = AuthSession.makeRedirectUri({
-        scheme: 'kuroclean',
-        path: 'auth/callback',
-      });
-
       if (Platform.OS === 'web') {
+        const redirectTo = getWebRedirectUri();
+
+        if (!redirectTo) {
+          throw new Error('No pude determinar la URL web de regreso para Google.');
+        }
+
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: { redirectTo },
@@ -96,6 +112,11 @@ export function AuthProvider({ children }) {
         if (error) throw error;
         return { ok: true };
       }
+
+      const redirectTo = AuthSession.makeRedirectUri({
+        scheme: 'kuroclean',
+        path: 'auth/callback',
+      }) || NATIVE_CALLBACK;
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

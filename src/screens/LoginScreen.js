@@ -34,7 +34,7 @@ export default function LoginScreen({
         <Text style={styles.subtitle}>
           {mandatory
             ? 'Tu avance, compras, tema, iconos y monedas quedaran unidos a tu usuario.'
-            : 'Puedes seguir sin cuenta por unos minutos, pero despues el login sera obligatorio para no perder el progreso.'}
+            : 'Inicia sesion si quieres guardar tu avance en la nube y recuperarlo despues.'}
         </Text>
 
         {!mandatory ? (

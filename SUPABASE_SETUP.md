@@ -28,14 +28,23 @@
 ```env
 EXPO_PUBLIC_SUPABASE_URL=https://TU-PROYECTO.supabase.co
 EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=TU-PUBLISHABLE-KEY
+EXPO_PUBLIC_SITE_URL=https://TU-SITIO.vercel.app
 ```
 
 ## 5. Redirect para la app
 
-La app ya usa este callback:
+La app movil usa este callback:
 
 ```txt
 kuroclean://auth/callback
+```
+
+En Supabase deja tambien agregada la URL web de tu sitio en `Authentication` -> `URL Configuration` -> `Redirect URLs`.
+
+Ejemplo:
+
+```txt
+https://kuronekoclean.vercel.app
 ```
 
 ## 6. Que guarda por usuario
