@@ -6,7 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import { useCat } from '../context/CatContext';
 import { APP_ILLUSTRATIONS } from '../data/illustrations';
-import { TASK_ILLUSTRATIONS, getTaskIllustration } from '../data/taskIllustrations';
+import { SHOP_ITEMS } from '../data/shopItems';
+import { TASK_ART_OPTIONS, getTaskIllustration } from '../data/taskIllustrations';
 import { RADII } from '../theme/tokens';
 import { useAppTheme } from '../theme/useAppTheme';
 
@@ -72,7 +73,10 @@ export default function TareasScreen() {
     reiniciarSemana,
     reiniciarMes,
     reiniciarAño,
+    purchasedItems,
     equippedTaskArt,
+    buyShopItem,
+    equipTaskArt,
   } = useCat();
 
   const TAB_OPTIONS = useMemo(() => ([
@@ -121,6 +125,49 @@ export default function TareasScreen() {
     if (filtro === 'done') return 'Mostrando solo lo que ya cerraste.';
     return 'Vista completa de esta rutina.';
   }, [filtro]);
+
+  const previewActions = useMemo(() => {
+    if (!previewItem?.taskId || !TASK_ART_OPTIONS[previewItem.taskId]?.length) return null;
+
+    return (
+      <View style={styles.previewOptionsWrap}>
+        <Text style={styles.previewOptionsTitle}>Cambiar dibujo aqui mismo</Text>
+        {TASK_ART_OPTIONS[previewItem.taskId].map((option) => {
+          const storeItem = SHOP_ITEMS.find((item) => item.type === 'taskArt' && item.taskId === previewItem.taskId && item.taskArtOptionId === option.id);
+          const owned = !option.purchasable || Boolean(storeItem && purchasedItems[storeItem.id]);
+          const active = equippedTaskArt?.[previewItem.taskId] === option.id;
+
+          return (
+            <View key={option.id} style={[styles.previewOptionRow, active && styles.previewOptionRowActive]}>
+              <View style={styles.previewOptionThumb}>
+                <Image source={option.source} style={styles.previewOptionThumbImage} resizeMode="contain" />
+              </View>
+              <View style={styles.previewOptionCopy}>
+                <Text style={styles.previewOptionLabel}>{option.label}</Text>
+                <Text style={styles.previewOptionNote}>{active ? 'Es el dibujo que se muestra ahora.' : owned ? 'Ya lo tienes disponible.' : `Cuesta ${storeItem?.cost || 0} monedas.`}</Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.previewOptionButton, active && styles.previewOptionButtonActive]}
+                onPress={() => {
+                  if (owned) {
+                    equipTaskArt(previewItem.taskId, option.id);
+                    setPreviewItem((prev) => prev ? { ...prev, source: option.source } : prev);
+                  } else if (storeItem) {
+                    buyShopItem(storeItem.id);
+                  }
+                }}
+                activeOpacity={0.82}
+              >
+                <Text style={[styles.previewOptionButtonText, active && styles.previewOptionButtonTextActive]}>
+                  {active ? 'Activo' : owned ? 'Usar' : `${storeItem?.cost || 0} monedas`}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+      </View>
+    );
+  }, [buyShopItem, equipTaskArt, equippedTaskArt, previewItem, purchasedItems, styles]);
 
   return (
     <View style={styles.screen}>
@@ -208,7 +255,7 @@ export default function TareasScreen() {
               accent={accent}
               colors={colors}
               illustrationSource={getTaskIllustration(task.id, equippedTaskArt)}
-              onPreview={(source, title) => setPreviewItem({ source, title })}
+              onPreview={(source, title) => setPreviewItem({ source, title, taskId: task.id })}
               onToggle={() => marcarTarea(pestaña, task.id)}
             />
           ))}
@@ -228,6 +275,7 @@ export default function TareasScreen() {
         source={previewItem?.source}
         title={previewItem?.title}
         colors={colors}
+        actions={previewActions}
         onClose={() => setPreviewItem(null)}
       />
     </View>
@@ -515,5 +563,76 @@ const createStyles = (colors) => StyleSheet.create({
   checkCircleDone: {
     backgroundColor: colors.mintStrong,
     borderColor: colors.mintStrong,
+  },
+  previewOptionsWrap: {
+    gap: 10,
+  },
+  previewOptionsTitle: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  previewOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: RADII.md,
+    backgroundColor: colors.bgGlass,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  previewOptionRowActive: {
+    backgroundColor: colors.successBg,
+    borderColor: colors.successBorder,
+  },
+  previewOptionThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: RADII.md,
+    backgroundColor: colors.bgCardAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  previewOptionThumbImage: {
+    width: '80%',
+    height: '80%',
+  },
+  previewOptionCopy: {
+    flex: 1,
+    paddingHorizontal: 10,
+  },
+  previewOptionLabel: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  previewOptionNote: {
+    color: colors.textMuted,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  previewOptionButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: RADII.pill,
+    backgroundColor: colors.bgCardAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  previewOptionButtonActive: {
+    backgroundColor: colors.successBg,
+    borderColor: colors.successBorder,
+  },
+  previewOptionButtonText: {
+    color: colors.textSoft,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  previewOptionButtonTextActive: {
+    color: colors.mintStrong,
   },
 });

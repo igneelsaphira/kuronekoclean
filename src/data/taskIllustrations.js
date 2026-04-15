@@ -4,7 +4,7 @@ const DEFAULT_TASK_ILLUSTRATIONS = {
   d3: require('../../assets/icon-bano.optimized.png'),
   d4: require('../../assets/icon-tender-cama.optimized.png'),
   d5: require('../../assets/icon-limpiar-cocina.optimized.png'),
-  d6: require('../../assets/icon-tomar-desayuno.optimized.png'),
+  d6: require('../../assets/icon-almorzar.optimized.png'),
   d7: require('../../assets/icon-tomar-once.optimized.png'),
   d8: require('../../assets/icon-tomar-once.optimized.png'),
   d9: require('../../assets/icon-sacar-basura.optimized.png'),

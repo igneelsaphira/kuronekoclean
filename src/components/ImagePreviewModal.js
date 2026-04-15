@@ -3,7 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RADII } from '../theme/tokens';
 
-export default function ImagePreviewModal({ visible, source, title, colors, onClose }) {
+export default function ImagePreviewModal({ visible, source, title, colors, onClose, note, actions }) {
   if (!source) return null;
 
   return (
@@ -19,6 +19,7 @@ export default function ImagePreviewModal({ visible, source, title, colors, onCl
           <View style={[styles.imageWrap, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}>
             <Image source={source} style={styles.image} resizeMode="contain" />
           </View>
+          {actions ? <View style={styles.actionsWrap}>{actions}</View> : null}
           <Text style={[styles.note, { color: colors.textMuted }]}>Mantén apretado 2 segundos cualquier dibujo para verlo más grande.</Text>
         </View>
       </Pressable>
@@ -72,6 +73,9 @@ const styles = StyleSheet.create({
   image: {
     width: '90%',
     height: '90%',
+  },
+  actionsWrap: {
+    marginTop: 12,
   },
   note: {
     fontSize: 12,

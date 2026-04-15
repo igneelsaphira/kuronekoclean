@@ -30,11 +30,8 @@ export default function TiendaScreen() {
     monedas,
     corazones,
     purchasedItems,
-    equippedTheme,
     equippedTaskArt,
     buyShopItem,
-    equipTheme,
-    equipTaskArt,
   } = useCat();
   const [previewItem, setPreviewItem] = React.useState(null);
 
@@ -82,7 +79,7 @@ export default function TiendaScreen() {
           <Text style={styles.sectionTitle}>Temas del cuarto</Text>
           <Text style={styles.sectionText}>Cada tema cambia la atmósfera general. La ilustración final la podrás ir reemplazando después sin romper el layout.</Text>
 
-          <TouchableOpacity style={styles.themePreview} onPress={() => equipTheme('default')} activeOpacity={0.82}>
+          <View style={styles.themePreview}>
               <View style={styles.paletteRow}>
               <View style={[styles.paletteDot, { backgroundColor: ROOM_THEMES.default.wall }]} />
               <View style={[styles.paletteDot, { backgroundColor: ROOM_THEMES.default.noteA }]} />
@@ -92,12 +89,11 @@ export default function TiendaScreen() {
               <Text style={styles.themeName}>Cielo de estudio</Text>
               <Text style={styles.themeDescription}>Tema base incluido desde el inicio.</Text>
             </View>
-            <View style={styles.themeActionPill}><Text style={styles.themeActionText}>{equippedTheme === 'default' ? 'Activo' : 'Usar'}</Text></View>
-          </TouchableOpacity>
+            <View style={styles.themeActionPill}><Text style={styles.themeActionText}>Incluido</Text></View>
+          </View>
 
           {themeItems.map((item) => {
             const owned = Boolean(purchasedItems[item.id]);
-            const isActive = item.themeKey === equippedTheme;
             const palette = ROOM_THEMES[item.themeKey];
 
             return (
@@ -115,10 +111,10 @@ export default function TiendaScreen() {
 
                 <TouchableOpacity
                   style={styles.shopButton}
-                  onPress={() => { owned ? equipTheme(item.themeKey) : buyShopItem(item.id); }}
+                  onPress={() => { if (!owned) buyShopItem(item.id); }}
                   activeOpacity={0.82}
                 >
-                  <Text style={styles.shopButtonText}>{isActive ? 'Activo' : owned ? 'Usar' : `${item.cost} monedas`}</Text>
+                  <Text style={styles.shopButtonText}>{owned ? 'Comprado' : `${item.cost} monedas`}</Text>
                 </TouchableOpacity>
               </View>
             );
@@ -144,7 +140,7 @@ export default function TiendaScreen() {
                 </View>
 
                 <TouchableOpacity style={styles.shopButton} onPress={() => buyShopItem(item.id)} activeOpacity={0.82}>
-                  <Text style={styles.shopButtonText}>{owned ? 'Guardado' : `${item.cost} monedas`}</Text>
+                  <Text style={styles.shopButtonText}>{owned ? 'Comprado' : `${item.cost} monedas`}</Text>
                 </TouchableOpacity>
               </View>
             );
@@ -168,7 +164,6 @@ export default function TiendaScreen() {
 
         {TASK_ART_OPTIONS.d4.map((option) => {
           const isDefault = !option.purchasable;
-          const active = equippedTaskArt?.d4 === option.id;
           const storeItem = taskArtItems.find((item) => item.taskArtOptionId === option.id);
           const owned = isDefault || Boolean(storeItem && purchasedItems[storeItem.id]);
 
@@ -186,15 +181,13 @@ export default function TiendaScreen() {
               <TouchableOpacity
                 style={styles.shopButton}
                 onPress={() => {
-                  if (owned) {
-                    equipTaskArt('d4', option.id);
-                  } else if (storeItem) {
+                  if (!owned && storeItem) {
                     buyShopItem(storeItem.id);
                   }
                 }}
                 activeOpacity={0.82}
               >
-                <Text style={styles.shopButtonText}>{active ? 'Activo' : owned ? 'Usar' : `${storeItem?.cost || 0} monedas`}</Text>
+                <Text style={styles.shopButtonText}>{isDefault ? 'Incluido' : owned ? 'Comprado' : `${storeItem?.cost || 0} monedas`}</Text>
               </TouchableOpacity>
             </View>
           );
