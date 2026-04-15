@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SHOP_ITEMS } from '../data/shopItems';
+import { useAuth } from './AuthContext';
+import { supabase } from '../lib/supabase';
 import {
   clearReminderNotifications,
   prepareNotifications,
@@ -9,7 +11,7 @@ import {
 } from '../utils/notifications';
 
 const CatContext = createContext();
-const STORAGE_KEY = '@kuroclean/state-v5';
+const STORAGE_KEY = '@kuroclean/state-v6';
 const SETTINGS_DEFAULTS = {
   themeMode: 'dark',
   remindersEnabled: false,
@@ -17,6 +19,7 @@ const SETTINGS_DEFAULTS = {
   soundEnabled: true,
   cozyMode: true,
 };
+const STATE_VERSION = 6;
 
 const TAREAS_DIARIAS = [
   { id: 'd1', nombre: 'Hacer desayuno', icono: '🍳', detalle: 'Un comienzo tibio para ti y para la casa.', duracion: '10 min', hecha: false },
@@ -144,14 +147,55 @@ function buildAchievements({ completadasTotales, minigameStats, purchasedItems, 
   ];
 }
 
+function buildPersistedPayload({
+  tareasDiaria,
+  tareasSemanal,
+  tareasMensual,
+  tareasAnual,
+  hambre,
+  felicidad,
+  monedas,
+  corazones,
+  purchasedItems,
+  equippedTheme,
+  equippedTaskArt,
+  settings,
+  minigameStats,
+}) {
+  return {
+    version: STATE_VERSION,
+    updatedAt: new Date().toISOString(),
+    tareasDiaria: tareasDiaria.map(({ id, hecha }) => ({ id, hecha })),
+    tareasSemanal: tareasSemanal.map(({ id, hecha }) => ({ id, hecha })),
+    tareasMensual: tareasMensual.map(({ id, hecha }) => ({ id, hecha })),
+    tareasAnual: tareasAnual.map(({ id, hecha }) => ({ id, hecha })),
+    hambre,
+    felicidad,
+    monedas,
+    corazones,
+    purchasedItems,
+    equippedTheme,
+    equippedTaskArt,
+    settings,
+    minigameStats,
+  };
+}
+
+function isIncomingStateNewer(incoming, current) {
+  const incomingTime = Date.parse(incoming?.updatedAt || 0);
+  const currentTime = Date.parse(current?.updatedAt || 0);
+  return incomingTime > currentTime;
+}
+
 export function CatProvider({ children }) {
+  const { user, isAuthenticated, configured: authConfigured } = useAuth();
   const [tareasDiaria, setTareasDiaria] = useState(() => cloneTasks(TAREAS_DIARIAS));
   const [tareasSemanal, setTareasSemanal] = useState(() => cloneTasks(TAREAS_SEMANALES));
   const [tareasMensual, setTareasMensual] = useState(() => cloneTasks(TAREAS_MENSUALES));
   const [tareasAnual, setTareasAnual] = useState(() => cloneTasks(TAREAS_ANUALES));
   const [hambre, setHambre] = useState(72);
   const [felicidad, setFelicidad] = useState(76);
-  const [monedas, setMonedas] = useState(8);
+  const [monedas, setMonedas] = useState(0);
   const [corazones, setCorazones] = useState(0);
   const [purchasedItems, setPurchasedItems] = useState({});
   const [equippedTheme, setEquippedTheme] = useState('default');
@@ -160,6 +204,25 @@ export function CatProvider({ children }) {
   const [notificationStatus, setNotificationStatus] = useState('idle');
   const [minigameStats, setMinigameStats] = useState({ totalPlayed: 0, lastPlayedGame: null, completedByGame: {} });
   const [hidrato, setHidrato] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('idle');
+
+  const applyPersistedState = (parsed) => {
+    if (!parsed) return;
+
+    setTareasDiaria(mergeTasks(TAREAS_DIARIAS, parsed.tareasDiaria));
+    setTareasSemanal(mergeTasks(TAREAS_SEMANALES, parsed.tareasSemanal));
+    setTareasMensual(mergeTasks(TAREAS_MENSUALES, parsed.tareasMensual));
+    setTareasAnual(mergeTasks(TAREAS_ANUALES, parsed.tareasAnual));
+    setHambre(clamp(parsed.hambre ?? 72, 0, 100));
+    setFelicidad(clamp(parsed.felicidad ?? 76, 0, 100));
+    setMonedas(clamp(parsed.monedas ?? 0, 0, 9999));
+    setCorazones(clamp(parsed.corazones ?? 0, 0, 9999));
+    setPurchasedItems(parsed.purchasedItems || {});
+    setEquippedTheme(parsed.equippedTheme || 'default');
+    setEquippedTaskArt({ d4: 'd4_default', ...(parsed.equippedTaskArt || {}) });
+    setSettings({ ...SETTINGS_DEFAULTS, ...(parsed.settings || {}) });
+    setMinigameStats(parsed.minigameStats || { totalPlayed: 0, lastPlayedGame: null, completedByGame: {} });
+  };
 
   useEffect(() => {
     prepareNotifications().catch(() => {});
@@ -174,19 +237,7 @@ export function CatProvider({ children }) {
         if (!raw || cancelled) return;
 
         const parsed = JSON.parse(raw);
-        setTareasDiaria(mergeTasks(TAREAS_DIARIAS, parsed.tareasDiaria));
-        setTareasSemanal(mergeTasks(TAREAS_SEMANALES, parsed.tareasSemanal));
-        setTareasMensual(mergeTasks(TAREAS_MENSUALES, parsed.tareasMensual));
-        setTareasAnual(mergeTasks(TAREAS_ANUALES, parsed.tareasAnual));
-        setHambre(clamp(parsed.hambre ?? 72, 0, 100));
-        setFelicidad(clamp(parsed.felicidad ?? 76, 0, 100));
-        setMonedas(clamp(parsed.monedas ?? 8, 0, 9999));
-        setCorazones(clamp(parsed.corazones ?? 0, 0, 9999));
-        setPurchasedItems(parsed.purchasedItems || {});
-        setEquippedTheme(parsed.equippedTheme || 'default');
-        setEquippedTaskArt({ d4: 'd4_default', ...(parsed.equippedTaskArt || {}) });
-        setSettings({ ...SETTINGS_DEFAULTS, ...(parsed.settings || {}) });
-        setMinigameStats(parsed.minigameStats || { totalPlayed: 0, lastPlayedGame: null, completedByGame: {} });
+        applyPersistedState(parsed);
       } catch (error) {
         console.warn('No pude recuperar el estado de Kuroclean', error);
       } finally {
@@ -258,30 +309,92 @@ export function CatProvider({ children }) {
     settings,
   }), [completadasTotales, minigameStats, purchasedItems, kuroScore, resumenRutinas, settings]);
   const unlockedAchievements = useMemo(() => achievements.filter((achievement) => achievement.unlocked), [achievements]);
+  const persistedPayload = useMemo(() => buildPersistedPayload({
+    tareasDiaria,
+    tareasSemanal,
+    tareasMensual,
+    tareasAnual,
+    hambre,
+    felicidad,
+    monedas,
+    corazones,
+    purchasedItems,
+    equippedTheme,
+    equippedTaskArt,
+    settings,
+    minigameStats,
+  }), [corazones, equippedTaskArt, equippedTheme, felicidad, hambre, minigameStats, monedas, purchasedItems, settings, tareasAnual, tareasDiaria, tareasMensual, tareasSemanal]);
 
   useEffect(() => {
     if (!hidrato) return;
 
-    const payload = {
-      tareasDiaria: tareasDiaria.map(({ id, hecha }) => ({ id, hecha })),
-      tareasSemanal: tareasSemanal.map(({ id, hecha }) => ({ id, hecha })),
-      tareasMensual: tareasMensual.map(({ id, hecha }) => ({ id, hecha })),
-      tareasAnual: tareasAnual.map(({ id, hecha }) => ({ id, hecha })),
-      hambre,
-      felicidad,
-      monedas,
-      corazones,
-      purchasedItems,
-      equippedTheme,
-      equippedTaskArt,
-      settings,
-      minigameStats,
-    };
-
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(payload)).catch((error) => {
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persistedPayload)).catch((error) => {
       console.warn('No pude guardar el estado de Kuroclean', error);
     });
-  }, [hidrato, tareasDiaria, tareasSemanal, tareasMensual, tareasAnual, hambre, felicidad, monedas, corazones, purchasedItems, equippedTheme, equippedTaskArt, settings, minigameStats]);
+  }, [hidrato, persistedPayload]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function syncRemoteState() {
+      if (!hidrato) return;
+
+      if (!isAuthenticated || !user?.id || !authConfigured || !supabase) {
+        setSyncStatus('idle');
+        return;
+      }
+
+      try {
+        setSyncStatus('syncing');
+
+        const { data, error } = await supabase
+          .from('user_progress')
+          .select('state, updated_at')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (cancelled) return;
+
+        const remoteState = data?.state || null;
+
+        if (!remoteState) {
+          await supabase.from('user_progress').upsert({
+            user_id: user.id,
+            state: persistedPayload,
+            updated_at: persistedPayload.updatedAt,
+          }, { onConflict: 'user_id' });
+
+          if (!cancelled) setSyncStatus('synced');
+          return;
+        }
+
+        if (isIncomingStateNewer(remoteState, persistedPayload)) {
+          applyPersistedState(remoteState);
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(remoteState));
+          if (!cancelled) setSyncStatus('synced');
+          return;
+        }
+
+        await supabase.from('user_progress').upsert({
+          user_id: user.id,
+          state: persistedPayload,
+          updated_at: persistedPayload.updatedAt,
+        }, { onConflict: 'user_id' });
+
+        if (!cancelled) setSyncStatus('synced');
+      } catch (error) {
+        console.warn('No pude sincronizar el progreso remoto', error);
+        if (!cancelled) setSyncStatus('error');
+      }
+    }
+
+    syncRemoteState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authConfigured, hidrato, isAuthenticated, persistedPayload, user?.id]);
 
   useEffect(() => {
     const bonus = Math.min(16, Math.floor(progresoAseo / 8));
@@ -466,6 +579,8 @@ export function CatProvider({ children }) {
     setReminderEnabled,
     setReminderSlot,
     hidrato,
+    syncStatus,
+    cloudSaveEnabled: Boolean(isAuthenticated && user?.id),
   };
 
   return <CatContext.Provider value={value}>{children}</CatContext.Provider>;

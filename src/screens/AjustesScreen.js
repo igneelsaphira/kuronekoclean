@@ -6,6 +6,7 @@ import { APP_ILLUSTRATIONS } from '../data/illustrations';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import { TASK_ILLUSTRATIONS } from '../data/taskIllustrations';
 import { useCat } from '../context/CatContext';
+import { useAuth } from '../context/AuthContext';
 import { REMINDER_PRESETS } from '../utils/notifications';
 import { RADII } from '../theme/tokens';
 import { useAppTheme } from '../theme/useAppTheme';
@@ -32,12 +33,15 @@ export default function AjustesScreen() {
   const { width } = useWindowDimensions();
   const isWideLayout = Platform.OS === 'web' && width >= 1180;
   const { colors, themeMode, toggleThemeMode } = useAppTheme();
+  const { user, configured, authBusy, authError, signInWithGoogle, signOut } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     settings,
     notificationStatus,
     achievements,
     minigameStats,
+    syncStatus,
+    cloudSaveEnabled,
     updateSettingValue,
     setReminderEnabled,
     setReminderSlot,
@@ -139,6 +143,33 @@ export default function AjustesScreen() {
             })}
           </View>
         </View>
+      </View>
+
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>Cuenta</Text>
+        <Text style={styles.sectionText}>Entra con Google para guardar tareas, monedas, compras, tema e iconos en tu cuenta.</Text>
+
+        <View style={styles.accountStatusCard}>
+          <Text style={styles.accountStatusTitle}>{user?.email || 'Sin sesion activa'}</Text>
+          <Text style={styles.accountStatusText}>
+            {cloudSaveEnabled ? `Guardado remoto activo (${syncStatus}).` : configured ? 'Todavia no has iniciado sesion.' : 'Falta configurar Supabase para activar el login.'}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.accountPrimaryButton}
+          onPress={user ? signOut : signInWithGoogle}
+          activeOpacity={0.82}
+          disabled={authBusy || !configured}
+        >
+          <Ionicons name={user ? 'log-out-outline' : 'logo-google'} size={16} color={colors.text} />
+          <Text style={styles.accountPrimaryButtonText}>
+            {authBusy ? 'Procesando...' : user ? 'Cerrar sesion' : 'Entrar con Google'}
+          </Text>
+        </TouchableOpacity>
+
+        {!configured ? <Text style={styles.accountHelperText}>Agrega las variables de Supabase para habilitar cuentas y nube.</Text> : null}
+        {authError ? <Text style={styles.accountErrorText}>{authError}</Text> : null}
       </View>
 
       <View style={[styles.settingsGrid, isWideLayout && styles.settingsGridWide]}>
@@ -253,6 +284,53 @@ const createStyles = (colors) => {
       fontSize: 13,
       lineHeight: 20,
       marginBottom: 14,
+    },
+    accountStatusCard: {
+      padding: 14,
+      borderRadius: RADII.lg,
+      backgroundColor: colors.bgGlassStrong,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: 12,
+    },
+    accountStatusTitle: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '700',
+      marginBottom: 4,
+    },
+    accountStatusText: {
+      color: colors.textMuted,
+      fontSize: 12,
+      lineHeight: 18,
+    },
+    accountPrimaryButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingVertical: 12,
+      borderRadius: RADII.lg,
+      backgroundColor: colors.bgCardAlt,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+    },
+    accountPrimaryButtonText: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    accountHelperText: {
+      color: colors.textFaint,
+      fontSize: 12,
+      lineHeight: 18,
+      marginTop: 10,
+    },
+    accountErrorText: {
+      color: colors.pinkStrong,
+      fontSize: 12,
+      lineHeight: 18,
+      marginTop: 10,
     },
     themeSwitch: {
       flexDirection: 'row',

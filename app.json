@@ -2,6 +2,7 @@
   "expo": {
     "name": "Kuroclean",
     "slug": "kuroclean",
+    "scheme": "kuroclean",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",

@@ -6,11 +6,13 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CatProvider, useCat } from './src/context/CatContext';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 import GatitoScreen from './src/screens/GatitoScreen';
 import TareasScreen from './src/screens/TareasScreen';
 import TiendaScreen from './src/screens/TiendaScreen';
 import SeguirTrabajandoScreen from './src/screens/SeguirTrabajandoScreen';
 import AjustesScreen from './src/screens/AjustesScreen';
+import LoginScreen from './src/screens/LoginScreen';
 import { PHONE_FRAME, RADII } from './src/theme/tokens';
 import { useAppTheme } from './src/theme/useAppTheme';
 
@@ -181,6 +183,26 @@ function AppTabs({ styles, colors, hideTabBar = false }) {
   );
 }
 
+function AuthReminderBanner({ styles, colors }) {
+  const { remainingGraceMs, signInWithGoogle, authBusy } = useAuth();
+  const minutes = Math.floor(remainingGraceMs / 60000);
+  const seconds = Math.floor((remainingGraceMs % 60000) / 1000);
+  const timerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+  return (
+    <View style={styles.authBanner}>
+      <View style={styles.authBannerCopy}>
+        <Text style={styles.authBannerTitle}>Inicia sesion para guardar tu progreso</Text>
+        <Text style={styles.authBannerText}>En {timerText} el login pasara a ser obligatorio.</Text>
+      </View>
+      <TouchableOpacity style={styles.authBannerButton} onPress={signInWithGoogle} activeOpacity={0.82} disabled={authBusy}>
+        <Ionicons name="logo-google" size={14} color={colors.text} />
+        <Text style={styles.authBannerButtonText}>{authBusy ? 'Abriendo...' : 'Entrar'}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 function DesktopWideApp({ styles, colors, navigationTheme, themeMode }) {
   const navigationRef = useNavigationContainerRef();
   const [activeRoute, setActiveRoute] = useState('Inicio');
@@ -241,6 +263,7 @@ function CompactApp({ styles, colors, themeMode }) {
 
 function ThemedAppChrome() {
   const { colors, themeMode } = useAppTheme();
+  const { authRequired, remainingGraceMs, isAuthenticated, configured, loading, authBusy, authError, signInWithGoogle } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { width } = useWindowDimensions();
   const isWideWeb = Platform.OS === 'web' && width >= 1180;
@@ -274,18 +297,43 @@ function ThemedAppChrome() {
     },
   }), [colors]);
 
-  if (isWideWeb) {
-    return <DesktopWideApp styles={styles} colors={colors} navigationTheme={navigationTheme} themeMode={themeMode} />;
+  if (authRequired) {
+    return (
+      <LoginScreen
+        mandatory
+        configured={configured}
+        loading={loading || authBusy}
+        error={authError}
+        remainingGraceMs={remainingGraceMs}
+        onGooglePress={signInWithGoogle}
+      />
+    );
   }
 
-  return <CompactApp styles={styles} colors={colors} themeMode={themeMode} />;
+  if (isWideWeb) {
+    return (
+      <View style={styles.appFrame}>
+        <DesktopWideApp styles={styles} colors={colors} navigationTheme={navigationTheme} themeMode={themeMode} />
+        {!isAuthenticated ? <AuthReminderBanner styles={styles} colors={colors} /> : null}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.appFrame}>
+      <CompactApp styles={styles} colors={colors} themeMode={themeMode} />
+      {!isAuthenticated ? <AuthReminderBanner styles={styles} colors={colors} /> : null}
+    </View>
+  );
 }
 
 function AppNavigation() {
   return (
-    <CatProvider>
-      <ThemedAppChrome />
-    </CatProvider>
+    <AuthProvider>
+      <CatProvider>
+        <ThemedAppChrome />
+      </CatProvider>
+    </AuthProvider>
   );
 }
 
@@ -301,6 +349,9 @@ const createStyles = (colors) => StyleSheet.create({
   mobileRoot: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  appFrame: {
+    flex: 1,
   },
   webRootCompact: {
     flex: 1,
@@ -673,5 +724,50 @@ const createStyles = (colors) => StyleSheet.create({
   },
   sceneCompact: {
     backgroundColor: 'transparent',
+  },
+  authBanner: {
+    position: 'absolute',
+    top: Platform.OS === 'web' ? 18 : 54,
+    left: 18,
+    right: 18,
+    padding: 12,
+    borderRadius: RADII.lg,
+    backgroundColor: colors.bgGlassStrong,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    zIndex: 50,
+  },
+  authBannerCopy: {
+    flex: 1,
+  },
+  authBannerTitle: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  authBannerText: {
+    color: colors.textMuted,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  authBannerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: RADII.pill,
+    backgroundColor: colors.bgCardAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  authBannerButtonText: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '800',
   },
 });
