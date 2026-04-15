@@ -73,7 +73,7 @@ export function AuthProvider({ children }) {
 
   const signInWithGoogle = async () => {
     if (!isSupabaseConfigured || !supabase) {
-      const message = 'Faltan EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY.';
+      const message = 'Faltan EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY.';
       setAuthError(message);
       return { ok: false, reason: 'missing_config', message };
     }

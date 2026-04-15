@@ -60,7 +60,7 @@ export default function LoginScreen({
         </TouchableOpacity>
 
         {!configured ? (
-          <Text style={styles.helperText}>Agrega `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY` para activar login y guardado remoto.</Text>
+          <Text style={styles.helperText}>Agrega `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` para activar login y guardado remoto.</Text>
         ) : null}
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -217,4 +217,3 @@ const createStyles = (colors) => StyleSheet.create({
     marginTop: 12,
   },
 });
-
