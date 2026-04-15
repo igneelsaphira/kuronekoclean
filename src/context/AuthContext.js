@@ -70,7 +70,6 @@ export function AuthProvider({ children }) {
   const graceEndsAt = graceStartedAt + OPTIONAL_AUTH_WINDOW_MS;
   const remainingGraceMs = Math.max(0, graceEndsAt - now);
   const isAuthenticated = Boolean(session?.user);
-  const authRequired = isSupabaseConfigured && !isAuthenticated && remainingGraceMs <= 0;
 
   const signInWithGoogle = async () => {
     if (!isSupabaseConfigured || !supabase) {
@@ -167,13 +166,12 @@ export function AuthProvider({ children }) {
     authBusy,
     authError,
     isAuthenticated,
-    authRequired,
     remainingGraceMs,
     graceEndsAt,
     configured: isSupabaseConfigured,
     signInWithGoogle,
     signOut,
-  }), [authBusy, authError, authRequired, graceEndsAt, isAuthenticated, loading, remainingGraceMs, session]);
+  }), [authBusy, authError, graceEndsAt, isAuthenticated, loading, remainingGraceMs, session]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

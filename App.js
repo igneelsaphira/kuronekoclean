@@ -12,7 +12,6 @@ import TareasScreen from './src/screens/TareasScreen';
 import TiendaScreen from './src/screens/TiendaScreen';
 import SeguirTrabajandoScreen from './src/screens/SeguirTrabajandoScreen';
 import AjustesScreen from './src/screens/AjustesScreen';
-import LoginScreen from './src/screens/LoginScreen';
 import { PHONE_FRAME, RADII } from './src/theme/tokens';
 import { useAppTheme } from './src/theme/useAppTheme';
 
@@ -184,7 +183,7 @@ function AppTabs({ styles, colors, hideTabBar = false }) {
 }
 
 function AuthReminderBanner({ styles, colors }) {
-  const { remainingGraceMs, signInWithGoogle, authBusy } = useAuth();
+  const { remainingGraceMs, signInWithGoogle, authBusy, configured } = useAuth();
   const minutes = Math.floor(remainingGraceMs / 60000);
   const seconds = Math.floor((remainingGraceMs % 60000) / 1000);
   const timerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -193,11 +192,15 @@ function AuthReminderBanner({ styles, colors }) {
     <View style={styles.authBanner}>
       <View style={styles.authBannerCopy}>
         <Text style={styles.authBannerTitle}>Inicia sesion para guardar tu progreso</Text>
-        <Text style={styles.authBannerText}>En {timerText} el login pasara a ser obligatorio.</Text>
+        <Text style={styles.authBannerText}>
+          {configured
+            ? `Si no entras, tu progreso quedara solo en este dispositivo. Recordatorio: ${timerText}.`
+            : 'Configura Supabase para guardar progreso en la nube con Google.'}
+        </Text>
       </View>
-      <TouchableOpacity style={styles.authBannerButton} onPress={signInWithGoogle} activeOpacity={0.82} disabled={authBusy}>
+      <TouchableOpacity style={styles.authBannerButton} onPress={signInWithGoogle} activeOpacity={0.82} disabled={authBusy || !configured}>
         <Ionicons name="logo-google" size={14} color={colors.text} />
-        <Text style={styles.authBannerButtonText}>{authBusy ? 'Abriendo...' : 'Entrar'}</Text>
+        <Text style={styles.authBannerButtonText}>{configured ? (authBusy ? 'Abriendo...' : 'Entrar') : 'Configurar'}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -263,7 +266,7 @@ function CompactApp({ styles, colors, themeMode }) {
 
 function ThemedAppChrome() {
   const { colors, themeMode } = useAppTheme();
-  const { authRequired, remainingGraceMs, isAuthenticated, configured, loading, authBusy, authError, signInWithGoogle } = useAuth();
+  const { isAuthenticated } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { width } = useWindowDimensions();
   const isWideWeb = Platform.OS === 'web' && width >= 1180;
@@ -296,19 +299,6 @@ function ThemedAppChrome() {
       primary: colors.lilacStrong,
     },
   }), [colors]);
-
-  if (authRequired) {
-    return (
-      <LoginScreen
-        mandatory
-        configured={configured}
-        loading={loading || authBusy}
-        error={authError}
-        remainingGraceMs={remainingGraceMs}
-        onGooglePress={signInWithGoogle}
-      />
-    );
-  }
 
   if (isWideWeb) {
     return (
