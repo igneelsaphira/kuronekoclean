@@ -1,270 +1,95 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ImageBackground, Image, Modal } from 'react-native';
-import { Image as ExpoImage } from 'expo-image';
-import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ImagePreviewModal from '../components/ImagePreviewModal';
 import { useCat } from '../context/CatContext';
+import { APP_ILLUSTRATIONS } from '../data/illustrations';
+import { TASK_ILLUSTRATIONS, getTaskIllustration } from '../data/taskIllustrations';
+import { RADII } from '../theme/tokens';
+import { useAppTheme } from '../theme/useAppTheme';
 
-const PESTAÑAS = [
-  { key: 'diaria', label: 'Diaria', tareasKey: 'tareasDiaria', reiniciar: 'reiniciarDia', fondo: require('../../assets/tab-diaria.png') },
-  { key: 'semanal', label: 'Semanal', tareasKey: 'tareasSemanal', reiniciar: 'reiniciarSemana', fondo: require('../../assets/tab-semanal.png') },
-  { key: 'mensual', label: 'Mensual', tareasKey: 'tareasMensual', reiniciar: 'reiniciarMes', fondo: require('../../assets/tab-mensual.png') },
-  { key: 'anual', label: 'Anual', tareasKey: 'tareasAnual', reiniciar: 'reiniciarAño', fondo: require('../../assets/tab-anual.png') },
+const FILTER_OPTIONS = [
+  { key: 'all', label: 'Todo' },
+  { key: 'quick', label: 'Cortitas' },
+  { key: 'pending', label: 'Pendientes' },
+  { key: 'done', label: 'Hechas' },
 ];
 
-const TEMAS = {
-  diaria: {
-    taskBg: 'rgba(90, 55, 130, 0.45)',
-    taskBorder: 'rgba(140, 90, 180, 0.6)',
-    taskDoneBg: 'rgba(70, 45, 110, 0.5)',
-    taskDoneBorder: 'rgba(180, 140, 220, 0.7)',
-    taskTextDone: 'rgba(200, 170, 255, 0.95)',
-    checkBorder: 'rgba(140, 90, 180, 0.7)',
-    checkDoneBg: 'rgba(120, 80, 160, 0.6)',
-    checkDoneBorder: 'rgba(180, 140, 220, 0.9)',
-    resetBg: 'rgba(70, 45, 110, 0.5)',
-    resetBorder: 'rgba(140, 90, 180, 0.5)',
-    resetText: 'rgba(220, 190, 255, 0.95)',
-    tabBg: 'rgba(90, 55, 130, 0.4)',
-    tabBorder: 'rgba(140, 90, 180, 0.5)',
-    tabActiveBg: 'rgba(100, 65, 150, 0.65)',
-    tabActiveBorder: 'rgba(180, 140, 220, 0.9)',
-  },
-  semanal: {
-    taskBg: 'rgba(150, 120, 200, 0.4)',
-    taskBorder: 'rgba(180, 150, 220, 0.55)',
-    taskDoneBg: 'rgba(130, 100, 180, 0.45)',
-    taskDoneBorder: 'rgba(200, 170, 240, 0.65)',
-    taskTextDone: 'rgba(220, 200, 255, 0.95)',
-    checkBorder: 'rgba(180, 150, 220, 0.65)',
-    checkDoneBg: 'rgba(150, 120, 200, 0.55)',
-    checkDoneBorder: 'rgba(200, 170, 240, 0.9)',
-    resetBg: 'rgba(120, 90, 170, 0.45)',
-    resetBorder: 'rgba(170, 140, 220, 0.5)',
-    resetText: 'rgba(230, 210, 255, 0.95)',
-    tabBg: 'rgba(140, 110, 190, 0.4)',
-    tabBorder: 'rgba(180, 150, 220, 0.5)',
-    tabActiveBg: 'rgba(160, 130, 210, 0.6)',
-    tabActiveBorder: 'rgba(200, 170, 240, 0.9)',
-  },
-  mensual: {
-    taskBg: 'rgba(70, 150, 210, 0.45)',
-    taskBorder: 'rgba(110, 180, 230, 0.6)',
-    taskDoneBg: 'rgba(50, 130, 190, 0.5)',
-    taskDoneBorder: 'rgba(140, 200, 250, 0.7)',
-    taskTextDone: 'rgba(180, 230, 255, 0.95)',
-    checkBorder: 'rgba(110, 180, 230, 0.7)',
-    checkDoneBg: 'rgba(90, 160, 220, 0.6)',
-    checkDoneBorder: 'rgba(150, 210, 255, 0.9)',
-    resetBg: 'rgba(50, 130, 190, 0.5)',
-    resetBorder: 'rgba(100, 170, 220, 0.5)',
-    resetText: 'rgba(190, 235, 255, 0.95)',
-    tabBg: 'rgba(70, 150, 200, 0.4)',
-    tabBorder: 'rgba(110, 180, 230, 0.5)',
-    tabActiveBg: 'rgba(90, 170, 220, 0.65)',
-    tabActiveBorder: 'rgba(150, 210, 255, 0.9)',
-  },
-  anual: {
-    taskBg: 'rgba(45, 25, 75, 0.5)',
-    taskBorder: 'rgba(80, 50, 120, 0.65)',
-    taskDoneBg: 'rgba(35, 18, 60, 0.55)',
-    taskDoneBorder: 'rgba(100, 65, 150, 0.75)',
-    taskTextDone: 'rgba(180, 150, 220, 0.95)',
-    checkBorder: 'rgba(80, 50, 120, 0.75)',
-    checkDoneBg: 'rgba(60, 35, 100, 0.65)',
-    checkDoneBorder: 'rgba(120, 80, 170, 0.9)',
-    resetBg: 'rgba(35, 20, 60, 0.55)',
-    resetBorder: 'rgba(70, 45, 110, 0.6)',
-    resetText: 'rgba(200, 170, 255, 0.95)',
-    tabBg: 'rgba(45, 25, 75, 0.45)',
-    tabBorder: 'rgba(80, 50, 120, 0.55)',
-    tabActiveBg: 'rgba(55, 30, 95, 0.7)',
-    tabActiveBorder: 'rgba(110, 75, 160, 0.9)',
-  },
-};
-
-const ICONO_LAVAR_ROPA = require('../../assets/icon-lavar-ropa.png');
-const ICONO_BARRER_TRAPEAR = require('../../assets/icon-barrer-trapear.png');
-const ICONO_LIMPIAR_VENTANAS = require('../../assets/icon-limpiar-ventanas.png');
-const ICONO_BANO = require('../../assets/icon-bano.png');
-const ICONO_TENDER_CAMA = require('../../assets/icon-tender-cama.png');
-const ICONO_LIMPIAR_POLVO = require('../../assets/icon-limpiar-polvo.png');
-const ICONO_ORDENAR_ARMARIOS = require('../../assets/icon-ordenar-armarios.png');
-const ICONO_PLANCHAR = require('../../assets/icon-planchar.png');
-const ICONO_LIMPIAR_LAMPARAS = require('../../assets/icon-limpiar-lamparas.png');
-const ICONO_SACAR_BASURA = require('../../assets/icon-sacar-basura.png');
-const ICONO_ORDENAR_DONAR = require('../../assets/icon-ordenar-donar.png');
-const ICONO_LAVAR_LOZA = require('../../assets/icon-lavar-loza.png');
-const ICONO_DESAYUNO = require('../../assets/icon-desayuno.png');
-const ICONO_TOMAR_DESAYUNO = require('../../assets/icon-tomar-desayuno.png');
-const ICONO_TOMAR_ONCE = require('../../assets/icon-tomar-once.png');
-const ICONO_LIMPIEZA_PROFUNDA = require('../../assets/icon-limpieza-profunda.png');
-const ICONO_LIMPIAR_REFRIGERADOR = require('../../assets/icon-limpiar-refrigerador.png');
-const ICONO_ASPIRAR = require('../../assets/icon-aspirar.png');
-const ICONO_REVISAR_DESPENSA = require('../../assets/icon-revisar-despensa.png');
-const ICONO_LIMPIAR_COCINA = require('../../assets/icon-limpiar-cocina.png');
-const ICONO_CAMBIAR_SABANAS = require('../../assets/icon-cambiar-sabanas.png');
-const ICONO_REVISAR_PINTURA = require('../../assets/icon-revisar-pintura.png');
-
-const OPCIONES_ICONOS_POR_TIPO = {
-  diaria: [
-    { key: 'd1', label: 'Hacer desayuno', source: ICONO_DESAYUNO },
-    { key: 'd2', label: 'Tomar desayuno', source: ICONO_TOMAR_DESAYUNO },
-    { key: 'd5', label: 'Tomar once', source: ICONO_TOMAR_ONCE },
-    { key: 'd3', label: 'Baño', source: ICONO_BANO },
-    { key: 'd4', label: 'Tender cama', source: ICONO_TENDER_CAMA },
-    { key: 'd6', label: 'Sacar basura', source: ICONO_SACAR_BASURA },
-    { key: 'd7', label: 'Limpiar polvo', source: ICONO_LIMPIAR_POLVO },
-    { key: 'd8', label: 'Lavar loza', source: ICONO_LAVAR_LOZA },
-    { key: 'd9', label: 'Barrer', source: ICONO_BARRER_TRAPEAR },
-  ],
-  semanal: [
-    { key: 's1', label: 'Lavar ropa', source: ICONO_LAVAR_ROPA },
-    { key: 's2', label: 'Planchar', source: ICONO_PLANCHAR },
-    { key: 's3', label: 'Limpiar cocina', source: ICONO_LIMPIAR_COCINA },
-    { key: 's4', label: 'Limpiar refrigerador', source: ICONO_LIMPIAR_REFRIGERADOR },
-    { key: 's5', label: 'Cambiar sábanas', source: ICONO_CAMBIAR_SABANAS },
-    { key: 's6', label: 'Ordenar armarios', source: ICONO_ORDENAR_ARMARIOS },
-  ],
-  mensual: [
-    { key: 'm1', label: 'Limpiar ventanas', source: ICONO_LIMPIAR_VENTANAS },
-    { key: 'm2', label: 'Aspirar', source: ICONO_ASPIRAR },
-    { key: 'm3', label: 'Revisar despensa', source: ICONO_REVISAR_DESPENSA },
-    { key: 'm4', label: 'Limpiar lámparas', source: ICONO_LIMPIAR_LAMPARAS },
-  ],
-  anual: [
-    { key: 'a1', label: 'Limpieza profunda', source: ICONO_LIMPIEZA_PROFUNDA },
-    { key: 'a2', label: 'Revisar pintura/paredes', source: ICONO_REVISAR_PINTURA },
-    { key: 'a3', label: 'Ordenar donar', source: ICONO_ORDENAR_DONAR },
-  ],
-};
-
-function iconStyleForTask(tipo, taskId) {
-  if (tipo === 'diaria' && taskId === 'd9') return styles.taskIconImageCastillo;
-  if (tipo === 'diaria' && taskId === 'd3') return styles.taskIconImageBano;
-  if (tipo === 'diaria' && taskId === 'd7') return styles.taskIconImagePolvo;
-  if (tipo === 'semanal' && taskId === 's1') return styles.taskIconImageLavarRopa;
-  if (tipo === 'diaria' && taskId === 'd4') return styles.taskIconImageLarge;
-  if (tipo === 'mensual' && taskId === 'm1') return styles.taskIconImageVentanasLarge;
-  return styles.taskIconImage;
+function getMinutes(duration) {
+  const match = String(duration).match(/\d+/);
+  return match ? Number(match[0]) : 0;
 }
 
-function ListaTareas({ tipo, tareas, marcarTarea, reiniciar, tema, onIconLongPress, iconOverrides }) {
-  const t = tema || TEMAS.diaria;
+function TaskCard({ task, accent, colors, illustrationSource, onToggle, onPreview }) {
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const imageSource = illustrationSource;
+
   return (
-    <ScrollView style={styles.lista} contentContainerStyle={styles.listaContent}>
-      {tareas.map((task) => {
-        const defaultIconoImagen =
-          (tipo === 'diaria' && task.id === 'd1') ? ICONO_DESAYUNO :
-          (tipo === 'diaria' && task.id === 'd2') ? ICONO_TOMAR_DESAYUNO :
-          (tipo === 'diaria' && task.id === 'd5') ? ICONO_TOMAR_ONCE :
-          (tipo === 'semanal' && task.id === 's1') ? ICONO_LAVAR_ROPA :
-          (tipo === 'semanal' && task.id === 's2') ? ICONO_PLANCHAR :
-          (tipo === 'semanal' && task.id === 's3') ? ICONO_LIMPIAR_COCINA :
-          (tipo === 'semanal' && task.id === 's4') ? ICONO_LIMPIAR_REFRIGERADOR :
-          (tipo === 'semanal' && task.id === 's5') ? ICONO_CAMBIAR_SABANAS :
-          (tipo === 'semanal' && task.id === 's6') ? ICONO_ORDENAR_ARMARIOS :
-          (tipo === 'diaria' && task.id === 'd9') ? ICONO_BARRER_TRAPEAR :
-          (tipo === 'diaria' && task.id === 'd3') ? ICONO_BANO :
-          (tipo === 'diaria' && task.id === 'd4') ? ICONO_TENDER_CAMA :
-          (tipo === 'diaria' && task.id === 'd6') ? ICONO_SACAR_BASURA :
-          (tipo === 'diaria' && task.id === 'd7') ? ICONO_LIMPIAR_POLVO :
-          (tipo === 'diaria' && task.id === 'd8') ? ICONO_LAVAR_LOZA :
-          (tipo === 'mensual' && task.id === 'm1') ? ICONO_LIMPIAR_VENTANAS :
-          (tipo === 'mensual' && task.id === 'm2') ? ICONO_ASPIRAR :
-          (tipo === 'mensual' && task.id === 'm3') ? ICONO_REVISAR_DESPENSA :
-          (tipo === 'mensual' && task.id === 'm4') ? ICONO_LIMPIAR_LAMPARAS :
-          (tipo === 'anual' && task.id === 'a1') ? ICONO_LIMPIEZA_PROFUNDA :
-          (tipo === 'anual' && task.id === 'a2') ? ICONO_REVISAR_PINTURA :
-          (tipo === 'anual' && task.id === 'a3') ? ICONO_ORDENAR_DONAR :
-          null;
-        const iconKey = `${tipo}:${task.id}`;
-        const iconoImagen = iconOverrides && iconOverrides[iconKey] ? iconOverrides[iconKey] : defaultIconoImagen;
-        const usarIconoImagen = !!iconoImagen;
-        return (
-        <TouchableOpacity
-          key={task.id}
-          style={[
-            styles.taskBase,
-            { backgroundColor: t.taskBg, borderColor: t.taskBorder },
-            task.hecha && { backgroundColor: t.taskDoneBg, borderColor: t.taskDoneBorder },
-            (tipo === 'diaria' && task.id === 'd3') && { borderColor: 'transparent' },
-            (tipo === 'diaria' && task.id === 'd4') && styles.taskBaseWithLargeIconTenderCama,
-            (tipo === 'mensual' && task.id === 'm1') && styles.taskBaseWithLargeIcon,
-          ]}
-          onPress={() => marcarTarea(tipo, task.id)}
-          onLongPress={usarIconoImagen ? () => onIconLongPress({ tipo, taskId: task.id, icono: iconoImagen }) : undefined}
-          delayLongPress={500}
-          activeOpacity={0.7}
-        >
-          {usarIconoImagen ? (
-            <View style={[styles.taskIconImageWrap, styles.taskIconImageWrapOnTop, (tipo === 'diaria' && task.id === 'd4') && styles.taskIconImageWrapTenderCama, (tipo === 'mensual' && task.id === 'm1') && styles.taskIconImageWrapLarge]} pointerEvents="box-none">
-              <ExpoImage
-                source={iconoImagen}
-                style={[iconStyleForTask(tipo, task.id), { backgroundColor: 'transparent' }]}
-                contentFit="contain"
-              />
-            </View>
-          ) : (
-            <Text style={styles.taskIcon}>{task.icono}</Text>
-          )}
-          <Text style={[styles.taskText, (tipo === 'diaria' && task.id === 'd3') && styles.taskTextBanoOffset, (tipo === 'diaria' && task.id === 'd4') && styles.taskTextTenderCama, (tipo === 'mensual' && task.id === 'm1') && styles.taskTextLimpiarVentanas, task.hecha && { color: t.taskTextDone, textDecorationLine: 'line-through' }]}>{tipo === 'diaria' && task.id === 'd7' ? `${task.nombre} ✨` : task.nombre}</Text>
-          <View style={[styles.checkBase, { borderColor: t.checkBorder }, task.hecha && { backgroundColor: t.checkDoneBg, borderColor: t.checkDoneBorder }]}>
-            <Text style={styles.checkText}>{task.hecha ? '✓' : ''}</Text>
-          </View>
-        </TouchableOpacity>
-      ); })}
-      <TouchableOpacity style={[styles.resetBtnBase, { backgroundColor: t.resetBg, borderColor: t.resetBorder }]} onPress={reiniciar}>
-        <Text style={[styles.resetBtnTextBase, { color: t.resetText }]}>Reiniciar</Text>
+    <TouchableOpacity style={[styles.taskCard, task.hecha && styles.taskCardDone]} onPress={onToggle} activeOpacity={0.84}>
+      <TouchableOpacity
+        style={[styles.taskEmojiWrap, { borderColor: `${accent}55`, backgroundColor: `${accent}18` }]}
+        activeOpacity={0.9}
+        delayLongPress={2000}
+        onLongPress={() => imageSource && onPreview?.(imageSource, task.nombre)}
+      >
+        {imageSource ? <Image source={imageSource} style={styles.taskArt} resizeMode="contain" /> : <Text style={styles.taskEmoji}>{task.icono}</Text>}
       </TouchableOpacity>
-    </ScrollView>
+
+      <View style={styles.taskCopy}>
+        <View style={styles.taskTitleRow}>
+          <Text style={[styles.taskTitle, task.hecha && styles.taskTitleDone]}>{task.nombre}</Text>
+          <View style={styles.durationChip}>
+            <Text style={styles.durationChipText}>{task.duracion}</Text>
+          </View>
+        </View>
+        <Text style={styles.taskDetail}>{task.detalle}</Text>
+      </View>
+
+      <View style={[styles.checkCircle, task.hecha && styles.checkCircleDone]}>
+        {task.hecha ? <Ionicons name="checkmark" size={16} color={colors.bg} /> : null}
+      </View>
+    </TouchableOpacity>
   );
 }
 
 export default function TareasScreen() {
-  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const route = useRoute();
+  const { width } = useWindowDimensions();
+  const isWideLayout = Platform.OS === 'web' && width >= 1180;
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     tareasDiaria,
     tareasSemanal,
     tareasMensual,
     tareasAnual,
+    resumenRutinas,
     marcarTarea,
     reiniciarDia,
     reiniciarSemana,
     reiniciarMes,
     reiniciarAño,
+    equippedTaskArt,
   } = useCat();
 
+  const TAB_OPTIONS = useMemo(() => ([
+    { key: 'diaria', label: 'Hoy', accent: colors.mintStrong, image: APP_ILLUSTRATIONS.tabDiaria },
+    { key: 'semanal', label: 'Semana', accent: colors.lilacStrong, image: APP_ILLUSTRATIONS.tabSemanal },
+    { key: 'mensual', label: 'Mes', accent: colors.pinkStrong, image: APP_ILLUSTRATIONS.tabMensual },
+    { key: 'anual', label: 'Profundo', accent: colors.gold, image: APP_ILLUSTRATIONS.tabAnual },
+  ]), [colors.gold, colors.lilacStrong, colors.mintStrong, colors.pinkStrong]);
+
   const [pestaña, setPestaña] = useState('diaria');
-  const [iconoPreview, setIconoPreview] = useState(null);
-  const [iconPreviewKey, setIconPreviewKey] = useState(null);
-  const [iconPreviewTipo, setIconPreviewTipo] = useState(null);
-  const [showIconOptions, setShowIconOptions] = useState(false);
-  const [iconOverrides, setIconOverrides] = useState({});
+  const [filtro, setFiltro] = useState('all');
+  const [previewItem, setPreviewItem] = useState(null);
 
-  const closeIconModal = () => {
-    setIconoPreview(null);
-    setIconPreviewKey(null);
-    setIconPreviewTipo(null);
-    setShowIconOptions(false);
-  };
-
-  const handleIconLongPress = ({ tipo, taskId, icono }) => {
-    const key = `${tipo}:${taskId}`;
-    setIconPreviewKey(key);
-    setIconPreviewTipo(tipo);
-    setIconoPreview(icono);
-    setShowIconOptions(false);
-  };
-
-  const handleSelectIconOption = (source) => {
-    if (!iconPreviewKey) return;
-    setIconOverrides((prev) => ({ ...prev, [iconPreviewKey]: source }));
-    setIconoPreview(source);
-    setShowIconOptions(false);
-  };
+  useEffect(() => {
+    if (route.params?.presetTab) setPestaña(route.params.presetTab);
+    if (route.params?.presetFilter) setFiltro(route.params.presetFilter);
+  }, [route.params]);
 
   const datos = {
     diaria: { tareas: tareasDiaria, reiniciar: reiniciarDia },
@@ -272,378 +97,423 @@ export default function TareasScreen() {
     mensual: { tareas: tareasMensual, reiniciar: reiniciarMes },
     anual: { tareas: tareasAnual, reiniciar: reiniciarAño },
   };
+
   const { tareas, reiniciar } = datos[pestaña];
-  const fondoActual = PESTAÑAS.find((t) => t.key === pestaña)?.fondo;
+  const resumen = resumenRutinas[pestaña];
+  const accent = TAB_OPTIONS.find((tab) => tab.key === pestaña)?.accent || colors.mintStrong;
+
+  const tareasFiltradas = useMemo(() => {
+    if (filtro === 'quick') return tareas.filter((task) => !task.hecha && getMinutes(task.duracion) <= 12);
+    if (filtro === 'pending') return tareas.filter((task) => !task.hecha);
+    if (filtro === 'done') return tareas.filter((task) => task.hecha);
+    return tareas;
+  }, [filtro, tareas]);
+
+  const mensajeResumen = useMemo(() => {
+    if (resumen.pendientes === 0) return 'Rutina cerrada por hoy. Puedes respirar un poco.';
+    if (resumen.hechas === 0) return 'Empieza por una sola tarea. No hace falta hacerlo todo.';
+    return `Te quedan ${resumen.pendientes} pendientes en esta rutina.`;
+  }, [resumen]);
+
+  const mensajeFiltro = useMemo(() => {
+    if (filtro === 'quick') return 'Mostrando solo tareas de 12 min o menos.';
+    if (filtro === 'pending') return 'Mostrando solo lo que sigue pendiente.';
+    if (filtro === 'done') return 'Mostrando solo lo que ya cerraste.';
+    return 'Vista completa de esta rutina.';
+  }, [filtro]);
 
   return (
-    <View style={styles.containerWrap}>
-      <ImageBackground
-        source={fondoActual}
-        style={styles.fondoImagen}
-        resizeMode="cover"
+    <View style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          isWideLayout && styles.contentWide,
+          { paddingTop: insets.top + 18, paddingBottom: insets.bottom + 112 },
+        ]}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.fondoOverlay} />
-      </ImageBackground>
-      <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
-        <TouchableOpacity
-          style={[styles.backBtn, { top: insets.top + 8 }]}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="arrow-back" size={28} color="#fff" />
-        </TouchableOpacity>
+        <Text style={styles.eyebrow}>Rutinas</Text>
+        <Text style={styles.title}>Tareas claras, suaves y bonitas.</Text>
+        <Text style={styles.subtitle}>Toca una tarea para marcarla. Puedes moverte por hoy, semana, mes o limpieza profunda sin perder el hilo.</Text>
 
-        <Text style={styles.title}>Tareas</Text>
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryTopRow}>
+            <View>
+              <Text style={styles.summaryLabel}>{TAB_OPTIONS.find((tab) => tab.key === pestaña)?.label}</Text>
+              <Text style={styles.summaryValue}>{Math.round(resumen.porcentaje)}%</Text>
+            </View>
 
-        <View style={styles.tabs}>
-          {PESTAÑAS.map((tab) => {
+            <TouchableOpacity style={styles.resetButton} onPress={reiniciar} activeOpacity={0.82}>
+              <Ionicons name="refresh-outline" size={16} color={colors.textSoft} />
+              <Text style={styles.resetButtonText}>Reiniciar</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.summaryBarTrack}>
+            <View style={[styles.summaryBarFill, { width: `${Math.max(6, resumen.porcentaje)}%`, backgroundColor: accent }]} />
+          </View>
+
+          <View style={styles.summaryStatsRow}>
+            <View style={styles.summaryStat}><Text style={styles.summaryStatValue}>{resumen.hechas}</Text><Text style={styles.summaryStatLabel}>hechas</Text></View>
+            <View style={styles.summaryStat}><Text style={styles.summaryStatValue}>{resumen.pendientes}</Text><Text style={styles.summaryStatLabel}>pendientes</Text></View>
+            <View style={styles.summaryStat}><Text style={styles.summaryStatValue}>{resumen.total}</Text><Text style={styles.summaryStatLabel}>total</Text></View>
+          </View>
+
+          <Text style={styles.summaryText}>{mensajeResumen}</Text>
+        </View>
+
+        <View style={styles.tabsRow}>
+          {TAB_OPTIONS.map((tab) => {
             const isActive = pestaña === tab.key;
             return (
               <TouchableOpacity
                 key={tab.key}
-                style={[
-                  styles.tabBase,
-                  styles.tabInactive,
-                  isActive && styles.tabActive,
-                ]}
+                style={[styles.tabButton, isActive && { borderColor: `${tab.accent}99`, backgroundColor: `${tab.accent}18` }]}
                 onPress={() => setPestaña(tab.key)}
+                activeOpacity={0.82}
               >
-                <Text style={[styles.tabText, styles.tabTextInactive, isActive && styles.tabTextActive]}>
-                  {tab.label}
-                </Text>
+                <View style={styles.tabArtWrap}>
+                  <Image source={tab.image} style={styles.tabArt} resizeMode="contain" />
+                </View>
+                <Text style={[styles.tabButtonText, isActive && { color: colors.text }]}>{tab.label}</Text>
+                <Text style={[styles.tabButtonCount, isActive && { color: tab.accent }]}>{resumenRutinas[tab.key].hechas}/{resumenRutinas[tab.key].total}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
-        <ListaTareas
-          tipo={pestaña}
-          tareas={tareas}
-          marcarTarea={marcarTarea}
-          reiniciar={reiniciar}
-          tema={TEMAS[pestaña]}
-          onIconLongPress={handleIconLongPress}
-          iconOverrides={iconOverrides}
-        />
-      </View>
-
-      <Modal
-        visible={!!iconoPreview}
-        transparent
-        animationType="fade"
-        onRequestClose={closeIconModal}
-      >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity
-            style={styles.modalCloseLeft}
-            onPress={closeIconModal}
-          >
-            <Ionicons name="close" size={32} color="#fff" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.modalChangeRight}
-            onPress={() => setShowIconOptions((v) => !v)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="arrow-redo-outline" size={30} color="#fff" />
-          </TouchableOpacity>
-
-          {iconoPreview && (
-            <ExpoImage
-              source={iconoPreview}
-              style={styles.modalImage}
-              contentFit="contain"
-            />
-          )}
-
-          {showIconOptions && (
-            <View style={styles.modalOptionsWrap}>
-              <Text style={styles.modalOptionsTitle}>Cambiar ícono</Text>
-              <ScrollView style={styles.modalOptionsScroll}>
-                <View style={styles.modalOptionsGrid}>
-                  {(OPCIONES_ICONOS_POR_TIPO[iconPreviewTipo] || []).map((opt) => (
-                    <TouchableOpacity
-                      key={opt.key}
-                      style={[
-                        styles.modalOptionBtn,
-                        iconoPreview === opt.source && styles.modalOptionBtnActive,
-                      ]}
-                      onPress={() => handleSelectIconOption(opt.source)}
-                      activeOpacity={0.8}
-                    >
-                      <ExpoImage
-                        source={opt.source}
-                        style={styles.modalOptionThumb}
-                        contentFit="contain"
-                      />
-                      <Text style={styles.modalOptionLabel} numberOfLines={2}>
-                        {opt.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-          )}
+        <View style={styles.filterRow}>
+          {FILTER_OPTIONS.map((option) => {
+            const isActive = filtro === option.key;
+            return (
+              <TouchableOpacity
+                key={option.key}
+                style={[styles.filterChip, isActive && { borderColor: `${accent}99`, backgroundColor: `${accent}18` }]}
+                onPress={() => setFiltro(option.key)}
+                activeOpacity={0.82}
+              >
+                <Text style={[styles.filterChipText, isActive && { color: colors.text }]}>{option.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-      </Modal>
+
+        <Text style={styles.filterMessage}>{mensajeFiltro}</Text>
+
+        <View style={styles.listWrap}>
+          {tareasFiltradas.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              accent={accent}
+              colors={colors}
+              illustrationSource={getTaskIllustration(task.id, equippedTaskArt)}
+              onPreview={(source, title) => setPreviewItem({ source, title })}
+              onToggle={() => marcarTarea(pestaña, task.id)}
+            />
+          ))}
+
+          {!tareasFiltradas.length ? (
+            <View style={styles.emptyCard}>
+              <Ionicons name="moon-outline" size={20} color={colors.textFaint} />
+              <Text style={styles.emptyTitle}>Nada por mostrar en este filtro.</Text>
+              <Text style={styles.emptyText}>Prueba otra vista o cambia de rutina.</Text>
+            </View>
+          ) : null}
+        </View>
+      </ScrollView>
+
+      <ImagePreviewModal
+        visible={Boolean(previewItem)}
+        source={previewItem?.source}
+        title={previewItem?.title}
+        colors={colors}
+        onClose={() => setPreviewItem(null)}
+      />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  containerWrap: { flex: 1 },
-  fondoImagen: {
-    ...StyleSheet.absoluteFillObject,
+const createStyles = (colors) => StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.bg,
   },
-  fondoOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+  content: {
+    paddingHorizontal: 18,
+    width: '100%',
   },
-  container: { flex: 1, paddingHorizontal: 20 },
-  backBtn: {
-    position: 'absolute',
-    left: 20,
-    zIndex: 10,
-    padding: 8,
+  contentWide: {
+    maxWidth: 980,
+    alignSelf: 'center',
+  },
+  eyebrow: {
+    color: colors.mintStrong,
+    fontSize: 11,
+    letterSpacing: 2.4,
+    textTransform: 'uppercase',
+    marginBottom: 8,
   },
   title: {
-    color: '#fff',
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginTop: 40,
-    marginBottom: 16,
-    marginLeft: 44,
+    color: colors.text,
+    fontSize: 28,
+    fontWeight: '700',
+    lineHeight: 34,
+    marginBottom: 8,
   },
-  tabs: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    gap: 8,
+  subtitle: {
+    color: colors.textMuted,
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 18,
   },
-  tabBase: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 10,
+  summaryCard: {
+    padding: 18,
+    borderRadius: RADII.lg,
+    backgroundColor: colors.bgGlass,
     borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 18,
   },
-  tabInactive: {
-    backgroundColor: 'rgba(90, 55, 130, 0.4)',
-    borderColor: 'rgba(140, 90, 180, 0.5)',
+  summaryTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
-  tabActive: {
-    backgroundColor: 'rgba(90, 170, 220, 0.65)',
-    borderColor: 'rgba(150, 210, 255, 0.9)',
+  summaryLabel: {
+    color: colors.textMuted,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.6,
+    marginBottom: 6,
   },
-  tabText: { fontSize: 14, fontWeight: '600' },
-  tabTextInactive: { color: 'rgba(220, 190, 255, 0.95)' },
-  tabTextActive: { color: '#fff' },
-  lista: { flex: 1 },
-  listaContent: { paddingBottom: 40 },
-  taskBase: {
+  summaryValue: {
+    color: colors.text,
+    fontSize: 32,
+    fontWeight: '700',
+  },
+  resetButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 28,
-    minHeight: 100,
-    borderRadius: 12,
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: RADII.pill,
+    backgroundColor: colors.bgGlassStrong,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  resetButtonText: {
+    color: colors.textSoft,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  summaryBarTrack: {
+    height: 11,
+    borderRadius: RADII.pill,
+    backgroundColor: colors.bgCardAlt,
+    overflow: 'hidden',
     marginBottom: 14,
+  },
+  summaryBarFill: {
+    height: '100%',
+    borderRadius: RADII.pill,
+  },
+  summaryStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  summaryStat: {
+    flex: 1,
+  },
+  summaryStatValue: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  summaryStatLabel: {
+    color: colors.textFaint,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
+  summaryText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  tabsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 18,
+  },
+  tabButton: {
+    width: '47%',
+    padding: 14,
+    borderRadius: RADII.md,
+    backgroundColor: colors.bgGlass,
     borderWidth: 1,
-    overflow: 'visible',
+    borderColor: colors.border,
   },
-  taskBaseWithLargeIcon: {
-    marginTop: 20,
-    paddingTop: 88,
-    minHeight: 160,
-  },
-  taskBaseWithLargeIconTenderCama: {
-    marginTop: 0,
-    paddingTop: 69,
-    minHeight: 141,
-  },
-  taskIcon: { fontSize: 28, marginRight: 14 },
-  taskIconImageWrap: {
-    width: 36,
-    height: 36,
-    marginRight: 14,
-    backgroundColor: 'transparent',
+  tabArtWrap: {
+    width: '100%',
+    height: 64,
+    borderRadius: RADII.md,
+    backgroundColor: colors.bgGlassStrong,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'visible',
+    overflow: 'hidden',
+    marginBottom: 10,
   },
-  taskIconImageWrapOnTop: {
-    zIndex: 10,
+  tabArt: {
+    width: '86%',
+    height: '86%',
   },
-  taskIconImageWrapLarge: {
-    position: 'absolute',
-    left: 28,
-    top: 60,
-    zIndex: 100,
+  tabButtonText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 6,
   },
-  taskIconImageWrapTenderCama: {
-    position: 'absolute',
-    left: 43,
-    top: 44,
-    zIndex: 100,
+  tabButtonCount: {
+    color: colors.textFaint,
+    fontSize: 12,
+    fontWeight: '600',
   },
-  taskIconImage: {
-    position: 'absolute',
-    width: 90,
-    height: 90,
-    left: -27,
-    top: -27,
-    backgroundColor: 'transparent',
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 10,
   },
-  taskIconImageCastillo: {
-    position: 'absolute',
-    width: 88,
-    height: 88,
-    left: -26,
-    top: -26,
-    backgroundColor: 'transparent',
+  filterChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: RADII.pill,
+    backgroundColor: colors.bgGlass,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  taskIconImageVentanas: {
-    position: 'absolute',
-    width: 80,
-    height: 90,
-    left: -22,
-    top: -27,
-    backgroundColor: 'transparent',
+  filterChipText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
   },
-  taskIconImageLavarRopa: {
-    position: 'absolute',
-    width: 130,
-    height: 130,
-    left: -33,
-    top: -38,
-    backgroundColor: 'transparent',
+  filterMessage: {
+    color: colors.textFaint,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 12,
   },
-  taskIconImageLarge: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    left: -72,
-    top: -72,
-    backgroundColor: 'transparent',
+  listWrap: {
+    gap: 12,
   },
-  taskIconImageVentanasLarge: {
-    position: 'absolute',
-    width: 160,
-    height: 180,
-    left: -62,
-    top: -72,
-    backgroundColor: 'transparent',
+  emptyCard: {
+    padding: 18,
+    borderRadius: RADII.lg,
+    backgroundColor: colors.bgGlass,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
   },
-  taskIconImageBano: {
-    position: 'absolute',
-    width: 82,
-    height: 82,
-    left: -23,
-    top: -23,
-    backgroundColor: 'transparent',
+  emptyTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 10,
+    marginBottom: 6,
   },
-  taskIconImagePolvo: {
-    position: 'absolute',
-    width: 92,
-    height: 92,
-    left: -28,
-    top: -28,
-    backgroundColor: 'transparent',
+  emptyText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
   },
-  taskText: { flex: 1, color: '#fff', fontSize: 16, textAlign: 'center' },
-  taskTextBanoOffset: { marginLeft: 8 },
-  taskTextTenderCama: { marginLeft: 100, marginTop: -14 },
-  taskTextLimpiarVentanas: { marginTop: -32 },
-  checkBase: {
+  taskCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: RADII.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bgGlass,
+  },
+  taskCardDone: {
+    borderColor: colors.successBorder,
+    backgroundColor: colors.successBg,
+  },
+  taskEmojiWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  taskEmoji: {
+    fontSize: 22,
+  },
+  taskArt: {
+    width: '78%',
+    height: '78%',
+  },
+  taskCopy: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  taskTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 6,
+  },
+  taskTitle: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  taskTitleDone: {
+    color: colors.mintStrong,
+    textDecorationLine: 'line-through',
+  },
+  durationChip: {
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+    borderRadius: RADII.pill,
+    backgroundColor: colors.bgCardAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  durationChipText: {
+    color: colors.textFaint,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  taskDetail: {
+    color: colors.textMuted,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  checkCircle: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    borderWidth: 2,
+    borderWidth: 1.5,
+    borderColor: colors.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  resetBtnBase: {
-    marginTop: 24,
-    padding: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  resetBtnTextBase: { fontSize: 16, fontWeight: '600' },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    paddingTop: 110,
-    paddingHorizontal: 16,
-  },
-  modalCloseLeft: {
-    position: 'absolute',
-    top: 60,
-    left: 24,
-    zIndex: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 20,
-    padding: 8,
-  },
-  modalChangeRight: {
-    position: 'absolute',
-    top: 60,
-    right: 24,
-    zIndex: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 20,
-    padding: 8,
-  },
-  modalImage: {
-    width: '86%',
-    height: '52%',
-  },
-  modalOptionsWrap: {
-    marginTop: 14,
-    width: '100%',
-  },
-  modalOptionsTitle: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  modalOptionsScroll: {
-    width: '100%',
-  },
-  modalOptionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 12,
-    paddingBottom: 24,
-  },
-  modalOptionBtn: {
-    width: 122,
-    borderRadius: 14,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  modalOptionBtnActive: {
-    borderColor: 'rgba(150, 210, 255, 0.95)',
-    backgroundColor: 'rgba(90, 170, 220, 0.22)',
-  },
-  modalOptionThumb: {
-    width: 64,
-    height: 64,
-  },
-  modalOptionLabel: {
-    marginTop: 8,
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
-    textAlign: 'center',
+  checkCircleDone: {
+    backgroundColor: colors.mintStrong,
+    borderColor: colors.mintStrong,
   },
 });

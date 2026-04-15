@@ -1,58 +1,301 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SHOP_ITEMS } from '../data/shopItems';
+import {
+  clearReminderNotifications,
+  prepareNotifications,
+  requestReminderPermission,
+  scheduleDailyReminder,
+} from '../utils/notifications';
 
 const CatContext = createContext();
+const STORAGE_KEY = '@kuroclean/state-v5';
+const SETTINGS_DEFAULTS = {
+  themeMode: 'dark',
+  remindersEnabled: false,
+  reminderSlot: 'evening',
+  soundEnabled: true,
+  cozyMode: true,
+};
 
 const TAREAS_DIARIAS = [
-  { id: 'd1', nombre: 'Hacer desayuno', icono: '🍳', hecha: false },
-  { id: 'd2', nombre: 'Tomar desayuno', icono: '☕', hecha: false },
-  { id: 'd3', nombre: 'Baño', icono: '🚿', hecha: false },
-  { id: 'd4', nombre: 'Tender camas / ordenar', icono: '🛏️', hecha: false },
-  { id: 'd5', nombre: 'Tomar once', icono: '🍵', hecha: false },
-  { id: 'd6', nombre: 'Sacar basura', icono: '🗑️', hecha: false },
-  { id: 'd7', nombre: 'Limpiar polvo', icono: '✨', hecha: false },
-  { id: 'd8', nombre: 'Lavar loza', icono: '🍽️', hecha: false },
-  { id: 'd9', nombre: 'Barrer y trapear', icono: '🏠', hecha: false },
+  { id: 'd1', nombre: 'Hacer desayuno', icono: '🍳', detalle: 'Un comienzo tibio para ti y para la casa.', duracion: '10 min', hecha: false },
+  { id: 'd2', nombre: 'Tomar desayuno', icono: '☕', detalle: 'Porque tu energia tambien cuenta como rutina.', duracion: '15 min', hecha: false },
+  { id: 'd3', nombre: 'Baño', icono: '🚿', detalle: 'Un reinicio pequeño que cambia todo el dia.', duracion: '10 min', hecha: false },
+  { id: 'd4', nombre: 'Tender camas / ordenar', icono: '🛏️', detalle: 'Orden visible para bajar un poco el ruido mental.', duracion: '8 min', hecha: false },
+  { id: 'd5', nombre: 'Hacer almuerzo', icono: '🍲', detalle: 'Preparar algo rico tambien sostiene la casa y el cuerpo.', duracion: '20 min', hecha: false },
+  { id: 'd6', nombre: 'Almorzar', icono: '🥘', detalle: 'Comer con calma tambien forma parte del cuidado diario.', duracion: '20 min', hecha: false },
+  { id: 'd7', nombre: 'Hacer once', icono: '🫖', detalle: 'Dejar lista la once baja el peso del resto de la tarde.', duracion: '12 min', hecha: false },
+  { id: 'd8', nombre: 'Tomar once', icono: '🍵', detalle: 'Una pausa suave para no llegar vacia al final del dia.', duracion: '15 min', hecha: false },
+  { id: 'd9', nombre: 'Sacar basura', icono: '🗑️', detalle: 'Liberar lo que ya cumplio su ciclo.', duracion: '5 min', hecha: false },
+  { id: 'd10', nombre: 'Limpiar polvo', icono: '✨', detalle: 'Un gesto corto que hace que todo respire mejor.', duracion: '7 min', hecha: false },
+  { id: 'd11', nombre: 'Lavar loza', icono: '🍽️', detalle: 'Cerrar una escena para que no pese despues.', duracion: '12 min', hecha: false },
+  { id: 'd12', nombre: 'Barrer y trapear', icono: '🧹', detalle: 'Una base limpia cambia la energia del espacio.', duracion: '15 min', hecha: false },
 ];
 
 const TAREAS_SEMANALES = [
-  { id: 's1', nombre: 'Lavar ropa', icono: '👕', hecha: false },
-  { id: 's2', nombre: 'Planchar', icono: '👔', hecha: false },
-  { id: 's3', nombre: 'Limpiar cocina', icono: '🍳', hecha: false },
-  { id: 's4', nombre: 'Limpiar refrigerador', icono: '🧊', hecha: false },
-  { id: 's5', nombre: 'Cambiar sábanas', icono: '🛏️', hecha: false },
-  { id: 's6', nombre: 'Ordenar armarios', icono: '🚪', hecha: false },
+  { id: 's1', nombre: 'Lavar ropa', icono: '🧺', detalle: 'Quitar carga acumulada de la semana.', duracion: '25 min', hecha: false },
+  { id: 's2', nombre: 'Planchar', icono: '👔', detalle: 'Preparar la semana con menos friccion.', duracion: '20 min', hecha: false },
+  { id: 's3', nombre: 'Limpiar cocina', icono: '🍳', detalle: 'Volver amable el lugar donde se sostiene el dia.', duracion: '20 min', hecha: false },
+  { id: 's4', nombre: 'Limpiar refrigerador', icono: '🧊', detalle: 'Revisar, vaciar y dejar espacio para lo nuevo.', duracion: '20 min', hecha: false },
+  { id: 's5', nombre: 'Cambiar sabanas', icono: '🌙', detalle: 'Dormir mejor tambien es parte del cuidado.', duracion: '12 min', hecha: false },
+  { id: 's6', nombre: 'Ordenar armarios', icono: '🚪', detalle: 'Quitar exceso para encontrar lo necesario mas rapido.', duracion: '18 min', hecha: false },
 ];
 
 const TAREAS_MENSUALES = [
-  { id: 'm1', nombre: 'Limpiar ventanas', icono: '🪟', hecha: false },
-  { id: 'm2', nombre: 'Aspirar', icono: '🛋️', hecha: false },
-  { id: 'm3', nombre: 'Revisar despensa', icono: '🥫', hecha: false },
-  { id: 'm4', nombre: 'Limpiar lámparas', icono: '💡', hecha: false },
+  { id: 'm1', nombre: 'Limpiar ventanas', icono: '🪟', detalle: 'Mas luz, mas aire, mas sensacion de apertura.', duracion: '25 min', hecha: false },
+  { id: 'm2', nombre: 'Aspirar', icono: '🛋️', detalle: 'Una pasada profunda para que el espacio vuelva a asentarse.', duracion: '20 min', hecha: false },
+  { id: 'm3', nombre: 'Revisar despensa', icono: '🥫', detalle: 'Ordenar lo que nutre tambien ordena la cabeza.', duracion: '18 min', hecha: false },
+  { id: 'm4', nombre: 'Limpiar lamparas', icono: '💡', detalle: 'Pequeños puntos de luz que cambian toda la atmosfera.', duracion: '12 min', hecha: false },
 ];
 
 const TAREAS_ANUALES = [
-  { id: 'a1', nombre: 'Limpieza profunda', icono: '🧹', hecha: false },
-  { id: 'a2', nombre: 'Revisar pintura/paredes', icono: '🖌️', hecha: false },
-  { id: 'a3', nombre: 'Ordenar y donar', icono: '📦', hecha: false },
+  { id: 'a1', nombre: 'Limpieza profunda', icono: '🧽', detalle: 'Una limpieza grande para empezar otro ciclo mas liviano.', duracion: '45 min', hecha: false },
+  { id: 'a2', nombre: 'Revisar pintura / paredes', icono: '🖌️', detalle: 'Mirar el hogar con ojos nuevos y reparar lo que pide cuidado.', duracion: '35 min', hecha: false },
+  { id: 'a3', nombre: 'Ordenar y donar', icono: '📦', detalle: 'Dejar ir tambien puede ser una forma de ordenar.', duracion: '40 min', hecha: false },
 ];
 
-export function CatProvider({ children }) {
-  const [tareasDiaria, setTareasDiaria] = useState(TAREAS_DIARIAS);
-  const [tareasSemanal, setTareasSemanal] = useState(TAREAS_SEMANALES);
-  const [tareasMensual, setTareasMensual] = useState(TAREAS_MENSUALES);
-  const [tareasAnual, setTareasAnual] = useState(TAREAS_ANUALES);
-  const [hambre, setHambre] = useState(70);
-  const [felicidad, setFelicidad] = useState(70);
+function cloneTasks(tasks) {
+  return tasks.map((task) => ({ ...task }));
+}
 
-  const tareas = tareasDiaria;
-  const tareasHechas = tareasDiaria.filter((t) => t.hecha).length;
-  const totalTareas = tareasDiaria.length;
-  const progresoAseo = totalTareas ? (tareasHechas / totalTareas) * 100 : 0;
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function mergeTasks(defaults, savedTasks) {
+  const savedMap = new Map((savedTasks || []).map((task) => [task.id, task]));
+  return defaults.map((task) => ({
+    ...task,
+    hecha: Boolean(savedMap.get(task.id)?.hecha),
+  }));
+}
+
+function buildProgress(tasks) {
+  const total = tasks.length;
+  const hechas = tasks.filter((task) => task.hecha).length;
+  const pendientes = total - hechas;
+  return {
+    total,
+    hechas,
+    pendientes,
+    porcentaje: total ? (hechas / total) * 100 : 0,
+  };
+}
+
+function getMinutes(duration) {
+  const match = String(duration).match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+function getKuroLevel(score) {
+  if (score >= 180) return { label: 'Guardian lunar', note: 'Tu rutina ya sostiene el espacio con presencia real.' };
+  if (score >= 110) return { label: 'Companera de ritual', note: 'Ya existe una constancia suave entre tu y Kuroneko.' };
+  if (score >= 55) return { label: 'Orden en progreso', note: 'La casa ya se esta sintiendo mas consciente.' };
+  return { label: 'Despertando la rutina', note: 'Cada gesto pequeno todavia esta construyendo el habito.' };
+}
+
+function buildAchievements({ completadasTotales, minigameStats, purchasedItems, kuroScore, resumenRutinas, settings }) {
+  const purchasedCount = Object.keys(purchasedItems || {}).length;
+
+  return [
+    {
+      id: 'first_steps',
+      title: 'Primeras huellitas',
+      note: 'Completa 3 tareas en total.',
+      icon: 'paw',
+      unlocked: completadasTotales >= 3,
+    },
+    {
+      id: 'cozy_player',
+      title: 'Juego suave',
+      note: 'Juega 3 microjuegos.',
+      icon: 'sparkles',
+      unlocked: (minigameStats.totalPlayed || 0) >= 3,
+    },
+    {
+      id: 'collector',
+      title: 'Pequena coleccion',
+      note: 'Compra tu primer objeto o tema.',
+      icon: 'bag-handle',
+      unlocked: purchasedCount >= 1,
+    },
+    {
+      id: 'steady_home',
+      title: 'Casa que respira',
+      note: 'Cierra 5 tareas diarias.',
+      icon: 'home',
+      unlocked: resumenRutinas.diaria.hechas >= 5,
+    },
+    {
+      id: 'guardian',
+      title: 'Guardiana lunar',
+      note: 'Llega a 140 puntos con Kuroneko.',
+      icon: 'moon',
+      unlocked: kuroScore >= 140,
+    },
+    {
+      id: 'soft_signal',
+      title: 'Senal suave',
+      note: 'Activa un recordatorio diario.',
+      icon: 'notifications',
+      unlocked: Boolean(settings.remindersEnabled),
+    },
+  ];
+}
+
+export function CatProvider({ children }) {
+  const [tareasDiaria, setTareasDiaria] = useState(() => cloneTasks(TAREAS_DIARIAS));
+  const [tareasSemanal, setTareasSemanal] = useState(() => cloneTasks(TAREAS_SEMANALES));
+  const [tareasMensual, setTareasMensual] = useState(() => cloneTasks(TAREAS_MENSUALES));
+  const [tareasAnual, setTareasAnual] = useState(() => cloneTasks(TAREAS_ANUALES));
+  const [hambre, setHambre] = useState(72);
+  const [felicidad, setFelicidad] = useState(76);
+  const [monedas, setMonedas] = useState(8);
+  const [corazones, setCorazones] = useState(0);
+  const [purchasedItems, setPurchasedItems] = useState({});
+  const [equippedTheme, setEquippedTheme] = useState('default');
+  const [equippedTaskArt, setEquippedTaskArt] = useState({ d4: 'd4_default' });
+  const [settings, setSettings] = useState(SETTINGS_DEFAULTS);
+  const [notificationStatus, setNotificationStatus] = useState('idle');
+  const [minigameStats, setMinigameStats] = useState({ totalPlayed: 0, lastPlayedGame: null, completedByGame: {} });
+  const [hidrato, setHidrato] = useState(false);
 
   useEffect(() => {
-    const bonus = Math.min(20, Math.floor(progresoAseo / 5));
-    setFelicidad((prev) => Math.min(100, prev + bonus * 0.1));
-  }, [tareasHechas]);
+    prepareNotifications().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadState() {
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (!raw || cancelled) return;
+
+        const parsed = JSON.parse(raw);
+        setTareasDiaria(mergeTasks(TAREAS_DIARIAS, parsed.tareasDiaria));
+        setTareasSemanal(mergeTasks(TAREAS_SEMANALES, parsed.tareasSemanal));
+        setTareasMensual(mergeTasks(TAREAS_MENSUALES, parsed.tareasMensual));
+        setTareasAnual(mergeTasks(TAREAS_ANUALES, parsed.tareasAnual));
+        setHambre(clamp(parsed.hambre ?? 72, 0, 100));
+        setFelicidad(clamp(parsed.felicidad ?? 76, 0, 100));
+        setMonedas(clamp(parsed.monedas ?? 8, 0, 9999));
+        setCorazones(clamp(parsed.corazones ?? 0, 0, 9999));
+        setPurchasedItems(parsed.purchasedItems || {});
+        setEquippedTheme(parsed.equippedTheme || 'default');
+        setEquippedTaskArt({ d4: 'd4_default', ...(parsed.equippedTaskArt || {}) });
+        setSettings({ ...SETTINGS_DEFAULTS, ...(parsed.settings || {}) });
+        setMinigameStats(parsed.minigameStats || { totalPlayed: 0, lastPlayedGame: null, completedByGame: {} });
+      } catch (error) {
+        console.warn('No pude recuperar el estado de Kuroclean', error);
+      } finally {
+        if (!cancelled) setHidrato(true);
+      }
+    }
+
+    loadState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const resumenRutinas = useMemo(() => ({
+    diaria: buildProgress(tareasDiaria),
+    semanal: buildProgress(tareasSemanal),
+    mensual: buildProgress(tareasMensual),
+    anual: buildProgress(tareasAnual),
+  }), [tareasDiaria, tareasSemanal, tareasMensual, tareasAnual]);
+
+  const tareasHechas = resumenRutinas.diaria.hechas;
+  const totalTareas = resumenRutinas.diaria.total;
+  const progresoAseo = resumenRutinas.diaria.porcentaje;
+
+  const progresoGeneral = useMemo(() => {
+    const todas = [...tareasDiaria, ...tareasSemanal, ...tareasMensual, ...tareasAnual];
+    const completadas = todas.filter((task) => task.hecha).length;
+    return todas.length ? (completadas / todas.length) * 100 : 0;
+  }, [tareasDiaria, tareasSemanal, tareasMensual, tareasAnual]);
+
+  const sugerenciasHoy = useMemo(() => {
+    const primeras = [
+      ...tareasDiaria.filter((task) => !task.hecha),
+      ...tareasSemanal.filter((task) => !task.hecha),
+      ...tareasMensual.filter((task) => !task.hecha),
+    ];
+    return primeras.slice(0, 3);
+  }, [tareasDiaria, tareasSemanal, tareasMensual]);
+
+  const tareasRapidas = useMemo(() => {
+    const candidatas = [...tareasDiaria, ...tareasSemanal]
+      .filter((task) => !task.hecha && getMinutes(task.duracion) <= 12)
+      .sort((a, b) => getMinutes(a.duracion) - getMinutes(b.duracion));
+
+    return candidatas.slice(0, 4);
+  }, [tareasDiaria, tareasSemanal]);
+
+  const completadasTotales = useMemo(() => {
+    return resumenRutinas.diaria.hechas + resumenRutinas.semanal.hechas + resumenRutinas.mensual.hechas + resumenRutinas.anual.hechas;
+  }, [resumenRutinas]);
+
+  const kuroScore = useMemo(() => {
+    return (
+      resumenRutinas.diaria.hechas * 6 +
+      resumenRutinas.semanal.hechas * 11 +
+      resumenRutinas.mensual.hechas * 16 +
+      resumenRutinas.anual.hechas * 24
+    );
+  }, [resumenRutinas]);
+
+  const kuroLevel = useMemo(() => getKuroLevel(kuroScore), [kuroScore]);
+  const achievements = useMemo(() => buildAchievements({
+    completadasTotales,
+    minigameStats,
+    purchasedItems,
+    kuroScore,
+    resumenRutinas,
+    settings,
+  }), [completadasTotales, minigameStats, purchasedItems, kuroScore, resumenRutinas, settings]);
+  const unlockedAchievements = useMemo(() => achievements.filter((achievement) => achievement.unlocked), [achievements]);
+
+  useEffect(() => {
+    if (!hidrato) return;
+
+    const payload = {
+      tareasDiaria: tareasDiaria.map(({ id, hecha }) => ({ id, hecha })),
+      tareasSemanal: tareasSemanal.map(({ id, hecha }) => ({ id, hecha })),
+      tareasMensual: tareasMensual.map(({ id, hecha }) => ({ id, hecha })),
+      tareasAnual: tareasAnual.map(({ id, hecha }) => ({ id, hecha })),
+      hambre,
+      felicidad,
+      monedas,
+      corazones,
+      purchasedItems,
+      equippedTheme,
+      equippedTaskArt,
+      settings,
+      minigameStats,
+    };
+
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(payload)).catch((error) => {
+      console.warn('No pude guardar el estado de Kuroclean', error);
+    });
+  }, [hidrato, tareasDiaria, tareasSemanal, tareasMensual, tareasAnual, hambre, felicidad, monedas, corazones, purchasedItems, equippedTheme, equippedTaskArt, settings, minigameStats]);
+
+  useEffect(() => {
+    const bonus = Math.min(16, Math.floor(progresoAseo / 8));
+    setFelicidad((prev) => clamp(prev + bonus * 0.04, 0, 100));
+  }, [tareasHechas, progresoAseo]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHambre((prev) => clamp(prev - 0.45, 0, 100));
+      setFelicidad((prev) => clamp(prev - 0.25, 0, 100));
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const marcarTarea = (tipo, id) => {
     const setters = {
@@ -61,31 +304,127 @@ export function CatProvider({ children }) {
       mensual: setTareasMensual,
       anual: setTareasAnual,
     };
+
     const setter = setters[tipo];
     if (!setter) return;
-    setter((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, hecha: !t.hecha } : t))
-    );
+
+    setter((prev) => prev.map((task) => (
+      task.id === id ? { ...task, hecha: !task.hecha } : task
+    )));
   };
 
-  const alimentar = () => setHambre((prev) => Math.min(100, prev + 25));
-  const jugar = () => setFelicidad((prev) => Math.min(100, prev + 15));
+  const alimentar = () => setHambre((prev) => clamp(prev + 18, 0, 100));
+  const jugar = () => setFelicidad((prev) => clamp(prev + 12, 0, 100));
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setHambre((prev) => Math.max(0, prev - 0.5));
-      setFelicidad((prev) => Math.max(0, prev - 0.3));
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  const registerMiniGameReward = ({ gameKey = null, coins = 0, hearts = 0, happiness = 0 }) => {
+    setMonedas((prev) => clamp(prev + coins, 0, 9999));
+    setCorazones((prev) => clamp(prev + hearts, 0, 9999));
+    setFelicidad((prev) => clamp(prev + happiness, 0, 100));
+    setMinigameStats((prev) => ({
+      totalPlayed: (prev.totalPlayed || 0) + 1,
+      lastPlayedGame: gameKey,
+      completedByGame: {
+        ...(prev.completedByGame || {}),
+        [gameKey]: ((prev.completedByGame || {})[gameKey] || 0) + 1,
+      },
+    }));
+  };
 
-  const reiniciarDia = () => setTareasDiaria(TAREAS_DIARIAS.map((t) => ({ ...t, hecha: false })));
-  const reiniciarSemana = () => setTareasSemanal(TAREAS_SEMANALES.map((t) => ({ ...t, hecha: false })));
-  const reiniciarMes = () => setTareasMensual(TAREAS_MENSUALES.map((t) => ({ ...t, hecha: false })));
-  const reiniciarAño = () => setTareasAnual(TAREAS_ANUALES.map((t) => ({ ...t, hecha: false })));
+  const buyShopItem = (itemId) => {
+    const item = SHOP_ITEMS.find((entry) => entry.id === itemId);
+    if (!item) return { ok: false, reason: 'missing' };
+    if (purchasedItems[itemId]) return { ok: false, reason: 'owned' };
+    if (monedas < item.cost) return { ok: false, reason: 'coins' };
+
+    setMonedas((prev) => prev - item.cost);
+    setPurchasedItems((prev) => ({ ...prev, [itemId]: true }));
+
+    if (item.type === 'theme' && item.themeKey) {
+      setEquippedTheme(item.themeKey);
+    }
+
+    if (item.type === 'taskArt' && item.taskId && item.taskArtOptionId) {
+      setEquippedTaskArt((prev) => ({ ...prev, [item.taskId]: item.taskArtOptionId }));
+    }
+
+    return { ok: true, item };
+  };
+
+  const equipTheme = (themeKey) => {
+    if (themeKey === 'default') {
+      setEquippedTheme('default');
+      return { ok: true };
+    }
+
+    const themeItem = SHOP_ITEMS.find((item) => item.type === 'theme' && item.themeKey === themeKey);
+    if (!themeItem || !purchasedItems[themeItem.id]) {
+      return { ok: false, reason: 'locked' };
+    }
+
+    setEquippedTheme(themeKey);
+    return { ok: true };
+  };
+
+  const equipTaskArt = (taskId, optionId) => {
+    const item = SHOP_ITEMS.find((entry) => entry.type === 'taskArt' && entry.taskId === taskId && entry.taskArtOptionId === optionId);
+
+    if (optionId.endsWith('_default')) {
+      setEquippedTaskArt((prev) => ({ ...prev, [taskId]: optionId }));
+      return { ok: true };
+    }
+
+    if (!item || !purchasedItems[item.id]) {
+      return { ok: false, reason: 'locked' };
+    }
+
+    setEquippedTaskArt((prev) => ({ ...prev, [taskId]: optionId }));
+    return { ok: true };
+  };
+
+  const updateSettingValue = (key, value) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const setReminderEnabled = async (enabled) => {
+    if (!enabled) {
+      await clearReminderNotifications();
+      setSettings((prev) => ({ ...prev, remindersEnabled: false }));
+      setNotificationStatus('off');
+      return { ok: true };
+    }
+
+    const granted = await requestReminderPermission();
+    if (!granted) {
+      setNotificationStatus('denied');
+      return { ok: false };
+    }
+
+    await scheduleDailyReminder(settings.reminderSlot);
+    setSettings((prev) => ({ ...prev, remindersEnabled: true }));
+    setNotificationStatus('scheduled');
+    return { ok: true };
+  };
+
+  const setReminderSlot = async (slot) => {
+    setSettings((prev) => ({ ...prev, reminderSlot: slot }));
+    if (settings.remindersEnabled) {
+      const granted = await requestReminderPermission();
+      if (!granted) {
+        setNotificationStatus('denied');
+        return { ok: false };
+      }
+      await scheduleDailyReminder(slot);
+      setNotificationStatus('scheduled');
+    }
+    return { ok: true };
+  };
+
+  const reiniciarDia = () => setTareasDiaria(cloneTasks(TAREAS_DIARIAS));
+  const reiniciarSemana = () => setTareasSemanal(cloneTasks(TAREAS_SEMANALES));
+  const reiniciarMes = () => setTareasMensual(cloneTasks(TAREAS_MENSUALES));
+  const reiniciarAño = () => setTareasAnual(cloneTasks(TAREAS_ANUALES));
 
   const value = {
-    tareas,
     tareasDiaria,
     tareasSemanal,
     tareasMensual,
@@ -97,11 +436,36 @@ export function CatProvider({ children }) {
     reiniciarAño,
     hambre,
     felicidad,
+    monedas,
+    corazones,
     alimentar,
     jugar,
+    registerMiniGameReward,
     progresoAseo,
+    progresoGeneral,
+    resumenRutinas,
+    sugerenciasHoy,
+    tareasRapidas,
     tareasHechas,
     totalTareas,
+    completadasTotales,
+    kuroScore,
+    kuroLevel,
+    achievements,
+    unlockedAchievements,
+    minigameStats,
+    purchasedItems,
+    equippedTheme,
+    equippedTaskArt,
+    buyShopItem,
+    equipTheme,
+    equipTaskArt,
+    settings,
+    notificationStatus,
+    updateSettingValue,
+    setReminderEnabled,
+    setReminderSlot,
+    hidrato,
   };
 
   return <CatContext.Provider value={value}>{children}</CatContext.Provider>;

@@ -1,352 +1,438 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Animated, Platform, useWindowDimensions } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ImagePreviewModal from '../components/ImagePreviewModal';
 import { useCat } from '../context/CatContext';
 import StudyCornerRoom from '../components/StudyCornerRoom';
+import { APP_ILLUSTRATIONS } from '../data/illustrations';
+import { TASK_ILLUSTRATIONS, getTaskIllustration } from '../data/taskIllustrations';
+import { ACTIVE_MINIGAME_KEYS, MiniGameModal } from '../minigames/MiniGameModal';
+import { RADII } from '../theme/tokens';
+import { useAppTheme } from '../theme/useAppTheme';
 
-const ICONO_ALIMENTAR = require('../../assets/icon-alimentar.png');
-const ICONO_JUGAR = require('../../assets/icon-jugar.png');
+const KURO_IMAGE = require('../../assets/kuro-cat.optimized.png');
 
-function BarraMini({ valor, color, label }) {
+function clamp(value) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Buenos dias';
+  if (hour < 19) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
+function getMood({ hambre, felicidad, progresoAseo }, colors) {
+  if (hambre <= 35) return { key: 'hungry', label: 'Kuroneko tiene hambre', accent: colors.gold };
+  if (felicidad <= 42) return { key: 'tired', label: 'Kuroneko necesita ternura', accent: colors.pinkStrong };
+  if (progresoAseo >= 70) return { key: 'radiant', label: 'La casa ya esta respirando', accent: colors.mintStrong };
+  return { key: 'steady', label: 'Avance suave, sin prisa', accent: colors.blue };
+}
+
+const HOME_PHRASES = {
+  radiant: ['Tu espacio se esta sintiendo mas liviano.', 'Vamos precioso, hoy si se puede avanzar suave.', 'Me gusta cuando la casa respira contigo.'],
+  steady: ['Una tarea pequena tambien cambia el dia.', 'No hace falta hacerlo todo de una vez.', 'Podemos ir poquito a poquito y aun asi cuenta.'],
+  hungry: ['Mami, un mimo y una tarea cortita? :3', 'Si me alimentas, te acompano en la siguiente tarea.', 'Hoy podria bastar con empezar por lo minimo.'],
+  tired: ['Si estas cansada, hagamos una sola cosa bien pequena.', 'A veces ordenar empieza por un rincon nada mas.', 'No te exijo, solo te acompano.'],
+};
+
+function RewardBubble({ styles, rewardToast, opacity }) {
+  if (!rewardToast) return null;
   return (
-    <View style={styles.barRow}>
-      <Text style={styles.barLabel}>{label}</Text>
-      <View style={styles.barBg}>
-        <View style={[styles.barFill, { width: `${Math.max(0, Math.min(100, valor))}%`, backgroundColor: color }]} />
+    <Animated.View style={[styles.rewardToast, { opacity }]}> 
+      <Text style={styles.rewardToastTitle}>{rewardToast.title}</Text>
+      <Text style={styles.rewardToastText}>{rewardToast.reaction}</Text>
+      <View style={styles.rewardToastRow}>
+        <Text style={styles.rewardToastChip}>+{rewardToast.rewards.coins} monedas</Text>
+        {rewardToast.rewards.hearts ? <Text style={styles.rewardToastChip}>+{rewardToast.rewards.hearts} corazones</Text> : null}
+        <Text style={styles.rewardToastChip}>+{rewardToast.rewards.happiness} felicidad</Text>
       </View>
-      <Text style={styles.barValue}>{Math.round(valor)}%</Text>
-    </View>
+    </Animated.View>
+  );
+}
+
+function IllustrationCard({ styles, image, title, text, onPress, onPreview }) {
+  return (
+    <TouchableOpacity style={styles.illustrationCard} onPress={onPress} activeOpacity={0.86}>
+      <TouchableOpacity
+        style={styles.illustrationFrame}
+        activeOpacity={0.9}
+        delayLongPress={2000}
+        onLongPress={() => onPreview?.(image, title)}
+      >
+        <Image source={image} style={styles.illustrationImage} resizeMode="contain" />
+      </TouchableOpacity>
+      <View style={styles.illustrationCopy}>
+        <Text style={styles.illustrationTitle}>{title}</Text>
+        <Text style={styles.illustrationText}>{text}</Text>
+      </View>
+    </TouchableOpacity>
   );
 }
 
 export default function GatitoScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { width: screenW, height: screenH } = useWindowDimensions();
-  const { hambre, felicidad, alimentar, jugar, progresoAseo } = useCat();
-  const breathe = useRef(new Animated.Value(1)).current;
-  const bob = useRef(new Animated.Value(0)).current;
-  const tareasScale = useRef(new Animated.Value(1)).current;
+  const { width } = useWindowDimensions();
+  const isWideLayout = Platform.OS === 'web' && width >= 1180;
+  const { colors, themeMode, toggleThemeMode } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const {
+    hambre,
+    felicidad,
+    monedas,
+    corazones,
+    alimentar,
+    registerMiniGameReward,
+    progresoAseo,
+    progresoGeneral,
+    tareasHechas,
+    totalTareas,
+    sugerenciasHoy,
+    tareasRapidas,
+    kuroScore,
+    kuroLevel,
+    equippedTheme,
+    purchasedItems,
+    unlockedAchievements,
+    equippedTaskArt,
+  } = useCat();
 
-  const tareasPressIn = () => {
-    Animated.spring(tareasScale, { toValue: 0.88, useNativeDriver: true, speed: 80 }).start();
-  };
-  const tareasPressOut = () => {
-    Animated.spring(tareasScale, { toValue: 1, useNativeDriver: true, speed: 80 }).start();
-  };
-
-  useEffect(() => {
-    const breathing = Animated.loop(
-      Animated.sequence([
-        Animated.timing(breathe, { toValue: 1.06, duration: 1800, useNativeDriver: true }),
-        Animated.timing(breathe, { toValue: 1, duration: 1800, useNativeDriver: true }),
-      ])
-    );
-    const bobbing = Animated.loop(
-      Animated.sequence([
-        Animated.timing(bob, { toValue: -4, duration: 1400, useNativeDriver: true }),
-        Animated.timing(bob, { toValue: 0, duration: 1400, useNativeDriver: true }),
-      ])
-    );
-    breathing.start();
-    bobbing.start();
-    return () => { breathing.stop(); bobbing.stop(); };
-  }, [breathe, bob]);
-
-  const FRASES_BURBUJA = ['¡Hola!', 'Jugemos', 'Mami limpiemos? :3', 'Buen día mamita, espero estés sintiéndote bien :3'];
-  const BURBUJA_TEMAS = [
-    { bg: 'rgba(90, 55, 130, 0.45)', border: 'rgba(140, 90, 180, 0.6)', text: 'rgba(220, 190, 255, 0.98)' },
-    { bg: 'rgba(70, 150, 210, 0.45)', border: 'rgba(110, 180, 230, 0.6)', text: 'rgba(190, 235, 255, 0.98)' },
-    { bg: 'rgba(150, 120, 200, 0.4)', border: 'rgba(180, 150, 220, 0.55)', text: 'rgba(230, 210, 255, 0.98)' },
-    { bg: 'rgba(100, 160, 140, 0.45)', border: 'rgba(130, 190, 170, 0.6)', text: 'rgba(210, 245, 230, 0.98)' },
-  ];
-  const [fraseVisible, setFraseVisible] = useState(null);
-  const [fraseIndex, setFraseIndex] = useState(0);
-  const fraseIndexRef = useRef(0);
-  const hideTimerRef = useRef(null);
-  const showTimerRef = useRef(null);
+  const mood = useMemo(() => getMood({ hambre, felicidad, progresoAseo }, colors), [colors, felicidad, hambre, progresoAseo]);
+  const frases = HOME_PHRASES[mood.key];
+  const [fraseVisible, setFraseVisible] = useState(frases[0]);
+  const [activeGameKey, setActiveGameKey] = useState(null);
+  const [lastGameKey, setLastGameKey] = useState(null);
+  const [rewardToast, setRewardToast] = useState(null);
+  const [previewItem, setPreviewItem] = useState(null);
   const bubbleOpacity = useRef(new Animated.Value(0)).current;
+  const rewardOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      if (showTimerRef.current) clearTimeout(showTimerRef.current);
-      setFraseVisible(null);
+    let index = 0;
+    const showPhrase = () => {
+      setFraseVisible(frases[index % frases.length]);
+      index += 1;
       bubbleOpacity.setValue(0);
-      const idx = fraseIndexRef.current % FRASES_BURBUJA.length;
-      fraseIndexRef.current = idx + 1;
-      const nextPhrase = FRASES_BURBUJA[idx];
-      showTimerRef.current = setTimeout(() => {
-        setFraseVisible(nextPhrase);
-        setFraseIndex(idx);
-        Animated.timing(bubbleOpacity, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }).start();
-      }, 200);
-      hideTimerRef.current = setTimeout(() => {
-        if (showTimerRef.current) clearTimeout(showTimerRef.current);
-        Animated.timing(bubbleOpacity, {
-          toValue: 0,
-          duration: 700,
-          useNativeDriver: true,
-        }).start(({ finished }) => {
-          if (finished) setFraseVisible(null);
-        });
-      }, 3000);
-    }, 7000);
-    return () => {
-      clearInterval(interval);
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      if (showTimerRef.current) clearTimeout(showTimerRef.current);
+      Animated.timing(bubbleOpacity, { toValue: 1, duration: 420, useNativeDriver: true }).start();
     };
-  }, [bubbleOpacity]);
+    showPhrase();
+    const interval = setInterval(showPhrase, 5200);
+    return () => clearInterval(interval);
+  }, [bubbleOpacity, frases]);
 
-  const topForOverlay = (Platform.OS === 'web' ? Math.max(insets.top, 44) : insets.top);
-  const tareasLeft = Math.round(screenW * 0.58);
-  const tareasTop = topForOverlay + Math.round(screenH * 0.15);
+  useEffect(() => {
+    if (!rewardToast) return undefined;
+    rewardOpacity.setValue(0);
+    Animated.sequence([
+      Animated.timing(rewardOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(1600),
+      Animated.timing(rewardOpacity, { toValue: 0, duration: 260, useNativeDriver: true }),
+    ]).start(({ finished }) => {
+      if (finished) setRewardToast(null);
+    });
+    return undefined;
+  }, [rewardOpacity, rewardToast]);
+
+  const startRandomMiniGame = () => {
+    const available = ACTIVE_MINIGAME_KEYS.filter((key) => key !== lastGameKey);
+    const pool = available.length ? available : ACTIVE_MINIGAME_KEYS;
+    const selected = pool[Math.floor(Math.random() * pool.length)];
+    setLastGameKey(selected);
+    setActiveGameKey(selected);
+  };
+
+  const handleMiniGameReward = (summary) => {
+    registerMiniGameReward({ gameKey: summary.gameKey, ...summary.rewards });
+    setRewardToast(summary);
+  };
+
+  const actionCards = [
+    {
+      key: 'feed',
+      image: APP_ILLUSTRATIONS.feedAction,
+      title: 'Alimentar',
+      text: 'Un mimo pequeño para subir su energia.',
+      onPress: alimentar,
+    },
+    {
+      key: 'play',
+      image: APP_ILLUSTRATIONS.playAction,
+      title: 'Jugar',
+      text: 'Abre un minijuego sorpresa, corto y relajante.',
+      onPress: startRandomMiniGame,
+    },
+  ];
+
+  const cozyScenes = [
+    { key: 'cocina', image: TASK_ILLUSTRATIONS.s3, title: 'Cocina amable', text: 'Una escena pequeña de orden que luego puedes reemplazar con tu arte final.' },
+    { key: 'cama', image: getTaskIllustration('d4', equippedTaskArt), title: 'Cama lista', text: 'Contenedor seguro para futuras ilustraciones de descanso y orden.' },
+    { key: 'polvo', image: TASK_ILLUSTRATIONS.d10, title: 'Polvito fuera', text: 'Placeholder bonito para la sensación de limpio y aire nuevo.' },
+  ];
 
   return (
-    <View style={styles.container}>
-      <StudyCornerRoom />
-
-      <TouchableOpacity
-        style={[styles.linkNotas, { top: topForOverlay + 10, right: 16 }]}
-        onPress={() => navigation.navigate('SeguirTrabajando')}
-        activeOpacity={0.7}
+    <View style={styles.screen}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={[
+          styles.content,
+          isWideLayout && styles.contentWide,
+          { paddingTop: insets.top + 18, paddingBottom: insets.bottom + 112 },
+        ]}
+        showsVerticalScrollIndicator={false}
       >
-        <Ionicons name="clipboard-outline" size={22} color="rgba(100, 70, 130, 0.95)" />
-        <Text style={styles.linkNotasText}>Seguir app</Text>
-      </TouchableOpacity>
+        <View style={styles.headerRow}>
+          <View style={styles.headerCopy}>
+            <Text style={styles.eyebrow}>Kuroclean</Text>
+            <Text style={styles.title}>{getGreeting()}, ordenemos con suavidad.</Text>
+            <Text style={styles.subtitle}>Una app de gatito para limpiar, ordenar y respirar un poco sin sentirte exigida.</Text>
+            <View style={styles.walletRow}>
+              <TouchableOpacity style={styles.walletChip} onPress={() => navigation.navigate('Tienda')} activeOpacity={0.82}><Ionicons name="logo-bitcoin" size={14} color={colors.gold} /><Text style={styles.walletChipText}>{monedas}</Text></TouchableOpacity>
+              <View style={styles.walletChip}><Ionicons name="heart" size={14} color={colors.pinkStrong} /><Text style={styles.walletChipText}>{corazones}</Text></View>
+              <TouchableOpacity style={styles.walletChip} onPress={toggleThemeMode} activeOpacity={0.82}><Ionicons name={themeMode === 'dark' ? 'sunny-outline' : 'moon-outline'} size={14} color={themeMode === 'dark' ? colors.gold : colors.lilacStrong} /><Text style={styles.walletChipText}>{themeMode === 'dark' ? 'bright' : 'dark'}</Text></TouchableOpacity>
+            </View>
+          </View>
 
-      {/* "Tareas" como en un papel de la pizarra: se agranda/reduce al tocar */}
-      <TouchableOpacity
-        activeOpacity={1}
-        onPressIn={tareasPressIn}
-        onPressOut={tareasPressOut}
-        onPress={() => navigation.navigate('Tareas')}
-        style={[styles.papelTareas, { left: tareasLeft, top: tareasTop }]}
-      >
-        <Animated.View style={{ transform: [{ scale: tareasScale }] }}>
-          <Text style={styles.papelTareasText}>Tareas</Text>
-        </Animated.View>
-      </TouchableOpacity>
+          <TouchableOpacity style={styles.ritualButton} onPress={() => navigation.navigate('Ritual')} activeOpacity={0.8}>
+            <Ionicons name="sparkles-outline" size={18} color={colors.text} />
+            <Text style={styles.ritualButtonText}>Ritual</Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* Gato (tu ilustración) encima del cuaderno, con movimiento */}
-      <View style={styles.catOnDesk}>
-        {fraseVisible ? (
-          <Animated.View
-            style={[
-              styles.burbujaWrap,
-              {
-                opacity: bubbleOpacity,
-                backgroundColor: BURBUJA_TEMAS[fraseIndex].bg,
-                borderColor: BURBUJA_TEMAS[fraseIndex].border,
-              },
-            ]}
-          >
-            <Text style={[styles.burbujaText, { color: BURBUJA_TEMAS[fraseIndex].text }]}>{fraseVisible}</Text>
-          </Animated.View>
-        ) : null}
-        <Animated.View style={[styles.catImageWrap, { transform: [{ scale: breathe }, { translateY: bob }] }]}>
-          <Image
-            source={require('../../assets/kuro-cat.png')}
-            style={styles.catImage}
-            resizeMode="contain"
-          />
-        </Animated.View>
-        <Text style={styles.nombre}>Kuroneko</Text>
-      </View>
+        <View style={[styles.topGrid, isWideLayout && styles.topGridWide]}>
+          <View style={styles.sceneCard}>
+            <StudyCornerRoom themeKey={equippedTheme} purchasedItems={purchasedItems} />
+            <View style={styles.sceneTint} />
 
-      {/* Hambre y Felicidad: mismo estilo pastel que Tareas */}
-      <View style={styles.statsCard}>
-        <BarraMini valor={hambre} color="rgba(100, 190, 255, 0.95)" label="🐟 Hambre" />
-        <BarraMini valor={felicidad} color="rgba(255, 195, 215, 0.92)" label="💗 Felicidad" />
-        {progresoAseo > 0 && (
-          <Text style={styles.aseoBonus}>✨ +{Math.floor(progresoAseo / 20)} aseo</Text>
-        )}
-      </View>
+            <View style={styles.sceneTopRow}>
+              <View style={[styles.sceneChip, { borderColor: `${mood.accent}66` }]}>
+                <View style={[styles.sceneChipDot, { backgroundColor: mood.accent }]} />
+                <Text style={styles.sceneChipText}>{mood.label}</Text>
+              </View>
+              <View style={styles.sceneChipAlt}><Ionicons name="checkmark-done-outline" size={14} color={colors.mintStrong} /><Text style={styles.sceneChipAltText}>{tareasHechas}/{totalTareas} hoy</Text></View>
+            </View>
 
-      {/* Alimentar y Jugar: cuadrados originales; sardina encima del de Alimentar, Jugar en celeste */}
-      <View style={styles.actions}>
-        <TouchableOpacity style={[styles.btn, styles.btnComida]} onPress={alimentar}>
-          <Image source={ICONO_ALIMENTAR} style={styles.btnIconImage} resizeMode="contain" />
-          <Text style={styles.btnText}>Alimentar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.btn, styles.btnJugar]} onPress={jugar}>
-          <Image source={ICONO_JUGAR} style={styles.btnIconImage} resizeMode="contain" />
-          <Text style={styles.btnText}>Jugar</Text>
-        </TouchableOpacity>
-      </View>
+            <View style={styles.catStage}>
+              <Animated.View style={[styles.bubble, { opacity: bubbleOpacity }]}>
+                <Text style={styles.bubbleText}>{fraseVisible}</Text>
+              </Animated.View>
+              <Image source={KURO_IMAGE} style={styles.catImage} resizeMode="contain" />
+              <Text style={styles.catName}>Kuroneko</Text>
+            </View>
+          </View>
 
-      <Text style={styles.tip}>Completa tareas para que tu gatito esté feliz.</Text>
+          <View style={styles.sideColumn}>
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}><Text style={styles.statLabel}>Rutina de hoy</Text><Text style={[styles.statValue, { color: colors.blue }]}>{clamp(progresoAseo)}%</Text><Text style={styles.statNote}>Lo diario hace que la casa respire.</Text></View>
+              <View style={styles.statCard}><Text style={styles.statLabel}>Progreso total</Text><Text style={[styles.statValue, { color: colors.lilacStrong }]}>{clamp(progresoGeneral)}%</Text><Text style={styles.statNote}>Tambien cuentan semana, mes y profundo.</Text></View>
+            </View>
+
+            <View style={styles.levelCard}>
+              <View style={styles.levelCopy}>
+                <Text style={styles.levelLabel}>Vinculo con Kuroneko</Text>
+                <Text style={styles.levelTitle}>{kuroLevel.label}</Text>
+                <Text style={styles.levelText}>{kuroLevel.note}</Text>
+              </View>
+              <View style={styles.levelScoreWrap}><Text style={styles.levelScoreValue}>{kuroScore}</Text><Text style={styles.levelScoreLabel}>pts</Text></View>
+            </View>
+
+            <View style={styles.achievementCard}>
+              <View style={styles.achievementHeaderRow}><Text style={styles.sectionTitle}>Desbloqueos</Text><Text style={styles.achievementCount}>{unlockedAchievements.length}</Text></View>
+              <View style={styles.achievementChipWrap}>
+                {unlockedAchievements.slice(0, 4).map((achievement) => (
+                  <View key={achievement.id} style={styles.achievementChip}><Ionicons name={achievement.icon} size={14} color={colors.mintStrong} /><Text style={styles.achievementChipText}>{achievement.title}</Text></View>
+                ))}
+                {!unlockedAchievements.length ? <Text style={styles.achievementEmpty}>Aun no desbloqueas insignias, pero ya vas en camino.</Text> : null}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.illustrationGrid}>
+          {actionCards.map((card) => <IllustrationCard key={card.key} styles={styles} image={card.image} title={card.title} text={card.text} onPress={card.onPress} onPreview={(source, title) => setPreviewItem({ source, title })} />)}
+        </View>
+
+        <View style={styles.cozyScenesCard}>
+          <View style={styles.focusHeader}><View><Text style={styles.sectionTitle}>Casita ordenada</Text><Text style={styles.focusSubtitle}>Volvieron algunos dibujos antiguos como placeholders lindos y fáciles de reemplazar.</Text></View></View>
+          <View style={styles.cozyScenesGrid}>
+            {cozyScenes.map((scene) => (
+              <View key={scene.key} style={styles.cozySceneTile}>
+                <TouchableOpacity style={styles.cozySceneImageWrap} activeOpacity={0.9} delayLongPress={2000} onLongPress={() => setPreviewItem({ source: scene.image, title: scene.title })}>
+                  <Image source={scene.image} style={styles.cozySceneImage} resizeMode="contain" />
+                </TouchableOpacity>
+                <Text style={styles.cozySceneTitle}>{scene.title}</Text>
+                <Text style={styles.cozySceneText}>{scene.text}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.focusCard}>
+          <View style={styles.focusHeader}><View><Text style={styles.sectionTitle}>Lo mejor para hoy</Text><Text style={styles.focusSubtitle}>Si no sabes por donde partir, prueba con una de estas.</Text></View><TouchableOpacity onPress={() => navigation.navigate('Rutinas')} activeOpacity={0.8}><Text style={styles.linkText}>Ver todas</Text></TouchableOpacity></View>
+
+          {sugerenciasHoy.length ? sugerenciasHoy.map((task) => (
+            <TouchableOpacity key={task.id} style={styles.focusTask} onPress={() => navigation.navigate('Rutinas')} activeOpacity={0.82}>
+              <TouchableOpacity style={styles.focusArtWrap} activeOpacity={0.9} delayLongPress={2000} onLongPress={() => getTaskIllustration(task.id, equippedTaskArt) && setPreviewItem({ source: getTaskIllustration(task.id, equippedTaskArt), title: task.nombre })}>{getTaskIllustration(task.id, equippedTaskArt) ? <Image source={getTaskIllustration(task.id, equippedTaskArt)} style={styles.focusArt} resizeMode="contain" /> : <Text style={styles.focusEmoji}>{task.icono}</Text>}</TouchableOpacity>
+              <View style={styles.focusTaskCopy}><Text style={styles.focusTaskTitle}>{task.nombre}</Text><Text style={styles.focusTaskText}>{task.detalle}</Text></View>
+              <View style={styles.focusTaskTime}><Text style={styles.focusTaskTimeText}>{task.duracion}</Text></View>
+            </TouchableOpacity>
+          )) : <View style={styles.emptyInlineCard}><Text style={styles.emptyInlineTitle}>Ya no quedan sugerencias abiertas por ahora.</Text><Text style={styles.emptyInlineText}>Puedes revisar semana o hacer una limpieza profunda si te nace.</Text></View>}
+        </View>
+
+        <View style={[styles.bottomGrid, isWideLayout && styles.bottomGridWide]}>
+          <View style={styles.quickCard}>
+            <Text style={styles.sectionTitle}>Entradas rapidas</Text>
+            <Text style={styles.focusSubtitle}>Para los dias en que cuesta empezar, pero igual quieres mover algo.</Text>
+            <View style={styles.quickActionRow}>
+              <TouchableOpacity style={styles.quickActionButton} onPress={() => navigation.navigate('Rutinas', { presetTab: 'diaria', presetFilter: 'quick' })} activeOpacity={0.85}><Ionicons name="flash-outline" size={18} color={colors.blue} /><Text style={styles.quickActionTitle}>5-12 min</Text><Text style={styles.quickActionText}>Solo tareas cortitas para empezar suave.</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.quickActionButton} onPress={() => navigation.navigate('Rutinas', { presetTab: 'diaria', presetFilter: 'pending' })} activeOpacity={0.85}><Ionicons name="albums-outline" size={18} color={colors.lilacStrong} /><Text style={styles.quickActionTitle}>Pendientes hoy</Text><Text style={styles.quickActionText}>Una vista solo de lo que sigue abierto hoy.</Text></TouchableOpacity>
+            </View>
+            <View style={styles.quickListWrap}>
+              {tareasRapidas.length ? tareasRapidas.slice(0, 3).map((task) => (
+                <TouchableOpacity key={task.id} style={styles.quickMiniTask} onPress={() => navigation.navigate('Rutinas', { presetTab: 'diaria', presetFilter: 'quick' })} activeOpacity={0.82}>
+                  <TouchableOpacity style={styles.quickMiniArtWrap} activeOpacity={0.9} delayLongPress={2000} onLongPress={() => getTaskIllustration(task.id, equippedTaskArt) && setPreviewItem({ source: getTaskIllustration(task.id, equippedTaskArt), title: task.nombre })}>{getTaskIllustration(task.id, equippedTaskArt) ? <Image source={getTaskIllustration(task.id, equippedTaskArt)} style={styles.quickMiniArt} resizeMode="contain" /> : <Text style={styles.quickMiniEmoji}>{task.icono}</Text>}</TouchableOpacity>
+                  <View style={styles.quickMiniCopy}><Text style={styles.quickMiniTitle}>{task.nombre}</Text><Text style={styles.quickMiniText}>{task.duracion}</Text></View>
+                  <Ionicons name="arrow-forward" size={14} color={colors.textFaint} />
+                </TouchableOpacity>
+              )) : <View style={styles.emptyInlineCard}><Text style={styles.emptyInlineTitle}>No hay tareas cortitas pendientes ahora mismo.</Text><Text style={styles.emptyInlineText}>Buen trabajo. Puedes volver mas tarde o mirar semana/mes.</Text></View>}
+            </View>
+          </View>
+
+          <View style={styles.ritualCard}>
+            <Text style={styles.sectionTitle}>Si hoy estas con poca energia</Text>
+            <Text style={styles.ritualText}>Haz una sola tarea corta, alimenta a Kuroneko y deja que eso sea suficiente por ahora.</Text>
+            <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Ritual')} activeOpacity={0.85}><Text style={styles.primaryButtonText}>Abrir ritual suave</Text><Ionicons name="arrow-forward" size={16} color={colors.bg} /></TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+
+      <RewardBubble styles={styles} rewardToast={rewardToast} opacity={rewardOpacity} />
+      <ImagePreviewModal visible={Boolean(previewItem)} source={previewItem?.source} title={previewItem?.title} colors={colors} onClose={() => setPreviewItem(null)} />
+      <MiniGameModal visible={Boolean(activeGameKey)} gameKey={activeGameKey} onClose={() => setActiveGameKey(null)} onReward={handleMiniGameReward} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  linkNotas: {
-    position: 'absolute',
-    zIndex: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
-    borderRadius: 16,
-  },
-  linkNotasText: {
-    marginLeft: 6,
-    color: 'rgba(100, 70, 130, 0.95)',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  fondoImagen: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  fondoImagenOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.15)',
-  },
-  papelTareas: {
-    position: 'absolute',
-    zIndex: 10,
-    backgroundColor: 'rgba(255, 245, 202, 0.72)',
-    borderColor: 'rgba(215, 175, 195, 0.65)',
-    borderWidth: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    transform: [{ rotate: '-1.5deg' }],
-  },
-  papelTareasText: {
-    color: 'rgba(100, 70, 130, 0.95)',
-    fontSize: 15,
-    fontWeight: '600',
-    textShadowColor: 'rgba(140, 110, 170, 0.4)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 2,
-  },
-  catOnDesk: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: '26%',
-    marginBottom: 28,
-    alignItems: 'center',
-    zIndex: 5,
-  },
-  burbujaWrap: {
-    alignSelf: 'center',
-    marginBottom: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  burbujaText: {
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  catImageWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  catImage: {
-    width: 140,
-    height: 140,
-    backgroundColor: 'transparent',
-  },
-  nombre: {
-    color: '#1a1a1a',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 6,
-    marginBottom: 2,
-    textShadowColor: 'rgba(255,255,255,0.8)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 4,
-  },
-  statsCard: {
-    position: 'absolute',
-    bottom: 154,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(90, 55, 130, 0.45)',
-    borderRadius: 20,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(140, 90, 180, 0.6)',
-  },
-  barRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  barLabel: {
-    color: 'rgba(220, 190, 255, 0.98)',
-    width: 82,
-    fontSize: 13,
-    fontWeight: '600',
-    textShadowColor: 'rgba(140, 90, 180, 0.4)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 2,
-  },
-  barBg: {
-    flex: 1,
-    height: 8,
-    backgroundColor: 'rgba(70, 45, 110, 0.5)',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginHorizontal: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(140, 90, 180, 0.4)',
-  },
-  barFill: { height: '100%', borderRadius: 3 },
-  barValue: {
-    color: 'rgba(220, 190, 255, 0.98)',
-    width: 32,
-    textAlign: 'right',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  aseoBonus: {
-    color: 'rgba(180, 220, 200, 0.95)',
-    fontSize: 11,
-    marginTop: 6,
-    fontWeight: '600',
-  },
-  actions: {
-    position: 'absolute',
-    bottom: 36,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    gap: 16,
-  },
-  btn: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    backgroundColor: 'rgba(90, 55, 130, 0.45)',
-    borderColor: 'rgba(140, 90, 180, 0.6)',
-  },
-  btnComida: {},
-  btnJugar: {},
-  btnIcon: { fontSize: 22, marginBottom: 2 },
-  btnIconImage: { width: 52, height: 52, marginBottom: 4 },
-  btnText: { color: 'rgba(220, 190, 255, 0.98)', fontSize: 13, fontWeight: '600' },
-  tip: {
-    position: 'absolute',
-    bottom: 12,
-    left: 20,
-    right: 20,
-    color: '#5a5a5a',
-    fontSize: 11,
-    textAlign: 'center',
-  },
+const createStyles = (colors) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.bg },
+  content: { paddingHorizontal: 18, width: '100%' },
+  contentWide: { maxWidth: 1140, alignSelf: 'center' },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18 },
+  headerCopy: { flex: 1, paddingRight: 12 },
+  eyebrow: { color: colors.pinkStrong, fontSize: 11, letterSpacing: 2.4, textTransform: 'uppercase', marginBottom: 8 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '700', lineHeight: 34, marginBottom: 8 },
+  subtitle: { color: colors.textMuted, fontSize: 14, lineHeight: 21 },
+  walletRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  walletChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 10, borderRadius: RADII.pill, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border },
+  walletChipText: { color: colors.textSoft, fontSize: 12, fontWeight: '700' },
+  ritualButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: RADII.pill, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border },
+  ritualButtonText: { color: colors.textSoft, fontSize: 12, fontWeight: '700' },
+  topGrid: { width: '100%' },
+  topGridWide: { flexDirection: 'row', gap: 16, alignItems: 'stretch' },
+  sceneCard: { flex: 1.08, height: 320, borderRadius: RADII.xl, overflow: 'hidden', borderWidth: 1, borderColor: colors.borderStrong, marginBottom: 18, position: 'relative', backgroundColor: colors.bgCard },
+  sceneTint: { ...StyleSheet.absoluteFillObject, backgroundColor: themeTint(colors) },
+  sceneTopRow: { position: 'absolute', top: 16, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  sceneChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: colors.bgGlassStrong, borderRadius: RADII.pill, borderWidth: 1 },
+  sceneChipDot: { width: 8, height: 8, borderRadius: 4 },
+  sceneChipText: { color: colors.text, fontSize: 11, fontWeight: '700' },
+  sceneChipAlt: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: RADII.pill, backgroundColor: colors.bgGlassStrong, borderWidth: 1, borderColor: colors.border },
+  sceneChipAltText: { color: colors.textSoft, fontSize: 11, fontWeight: '700' },
+  catStage: { position: 'absolute', left: 0, right: 0, bottom: 24, alignItems: 'center' },
+  bubble: { maxWidth: 260, marginBottom: 10, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16, backgroundColor: colors.bgGlassStrong, borderWidth: 1, borderColor: colors.borderStrong },
+  bubbleText: { color: colors.text, fontSize: 13, lineHeight: 18, textAlign: 'center', fontWeight: '600' },
+  catImage: { width: 148, height: 148 },
+  catName: { color: colors.ink, fontSize: 16, fontWeight: '700', marginTop: 6 },
+  sideColumn: { flex: 0.92, minWidth: 0 },
+  statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 18 },
+  statCard: { flex: 1, minHeight: 126, padding: 16, borderRadius: RADII.lg, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border },
+  statLabel: { color: colors.textMuted, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 },
+  statValue: { fontSize: 26, fontWeight: '700', marginBottom: 8 },
+  statNote: { color: colors.textFaint, fontSize: 12, lineHeight: 18 },
+  levelCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18, borderRadius: RADII.lg, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border, marginBottom: 18 },
+  levelCopy: { flex: 1, paddingRight: 14 },
+  levelLabel: { color: colors.textMuted, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.6, marginBottom: 6 },
+  levelTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 6 },
+  levelText: { color: colors.textMuted, fontSize: 13, lineHeight: 20 },
+  levelScoreWrap: { width: 78, height: 78, borderRadius: 39, alignItems: 'center', justifyContent: 'center', backgroundColor: `${colors.lilac}22`, borderWidth: 1, borderColor: colors.border },
+  levelScoreValue: { color: colors.lilacStrong, fontSize: 22, fontWeight: '800' },
+  levelScoreLabel: { color: colors.textFaint, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
+  achievementCard: { padding: 18, borderRadius: RADII.lg, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border, marginBottom: 18 },
+  achievementHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  achievementCount: { color: colors.mintStrong, fontSize: 18, fontWeight: '800' },
+  achievementChipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  achievementChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 10, borderRadius: RADII.pill, backgroundColor: colors.successBg, borderWidth: 1, borderColor: colors.successBorder },
+  achievementChipText: { color: colors.textSoft, fontSize: 12, fontWeight: '700' },
+  achievementEmpty: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  illustrationGrid: { flexDirection: 'row', gap: 12, marginBottom: 18 },
+  illustrationCard: { flex: 1, padding: 14, borderRadius: RADII.lg, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border, minHeight: 168 },
+  illustrationFrame: { height: 92, borderRadius: RADII.md, backgroundColor: colors.bgGlassStrong, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: 12 },
+  illustrationImage: { width: '78%', height: '78%' },
+  illustrationCopy: { flex: 1 },
+  illustrationTitle: { color: colors.text, fontSize: 14, fontWeight: '700', marginBottom: 4 },
+  illustrationText: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  cozyScenesCard: { padding: 18, borderRadius: RADII.lg, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border, marginBottom: 18 },
+  cozyScenesGrid: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  cozySceneTile: { flex: 1, minWidth: 180, padding: 12, borderRadius: RADII.md, backgroundColor: colors.bgGlassStrong, borderWidth: 1, borderColor: colors.border },
+  cozySceneImageWrap: { height: 92, borderRadius: RADII.md, backgroundColor: colors.bgCardAlt, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  cozySceneImage: { width: '80%', height: '80%' },
+  cozySceneTitle: { color: colors.text, fontSize: 13, fontWeight: '700', marginBottom: 4 },
+  cozySceneText: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  focusCard: { padding: 18, borderRadius: RADII.lg, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border, marginBottom: 18 },
+  focusHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 },
+  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 8 },
+  focusSubtitle: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
+  linkText: { color: colors.blue, fontSize: 12, fontWeight: '700' },
+  focusTask: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.border },
+  focusEmoji: { fontSize: 22, marginRight: 12 },
+  focusArtWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.bgCardAlt, alignItems: 'center', justifyContent: 'center', marginRight: 12, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
+  focusArt: { width: '78%', height: '78%' },
+  focusTaskCopy: { flex: 1, paddingRight: 10 },
+  focusTaskTitle: { color: colors.text, fontSize: 14, fontWeight: '700', marginBottom: 3 },
+  focusTaskText: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  focusTaskTime: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: RADII.pill, backgroundColor: `${colors.blue}18`, borderWidth: 1, borderColor: colors.border },
+  focusTaskTimeText: { color: colors.blue, fontSize: 11, fontWeight: '700' },
+  emptyInlineCard: { paddingTop: 6 },
+  emptyInlineTitle: { color: colors.text, fontSize: 13, fontWeight: '700', marginBottom: 4 },
+  emptyInlineText: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  bottomGrid: { width: '100%' },
+  bottomGridWide: { flexDirection: 'row', gap: 16, alignItems: 'stretch' },
+  quickCard: { flex: 1.35, padding: 18, borderRadius: RADII.lg, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border, marginBottom: 18 },
+  quickActionRow: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 14 },
+  quickActionButton: { flex: 1, padding: 14, borderRadius: RADII.md, backgroundColor: colors.bgGlassStrong, borderWidth: 1, borderColor: colors.border },
+  quickActionTitle: { color: colors.text, fontSize: 14, fontWeight: '700', marginTop: 10, marginBottom: 4 },
+  quickActionText: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  quickListWrap: { gap: 10 },
+  quickMiniTask: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.border },
+  quickMiniEmoji: { fontSize: 20, marginRight: 12 },
+  quickMiniArtWrap: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.bgCardAlt, alignItems: 'center', justifyContent: 'center', marginRight: 12, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
+  quickMiniArt: { width: '76%', height: '76%' },
+  quickMiniCopy: { flex: 1 },
+  quickMiniTitle: { color: colors.text, fontSize: 13, fontWeight: '700', marginBottom: 2 },
+  quickMiniText: { color: colors.textFaint, fontSize: 11 },
+  ritualCard: { flex: 1, padding: 18, borderRadius: RADII.lg, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border, marginBottom: 18 },
+  ritualText: { color: colors.textMuted, fontSize: 14, lineHeight: 21, marginBottom: 16 },
+  primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, paddingHorizontal: 16, borderRadius: RADII.pill, backgroundColor: colors.lilacStrong },
+  primaryButtonText: { color: colors.bg, fontSize: 13, fontWeight: '800' },
+  rewardToast: { position: 'absolute', left: 18, right: 18, bottom: 96, padding: 14, borderRadius: RADII.lg, backgroundColor: colors.bgGlassStrong, borderWidth: 1, borderColor: colors.borderStrong },
+  rewardToastTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 4 },
+  rewardToastText: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginBottom: 10 },
+  rewardToastRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  rewardToastChip: { color: colors.textSoft, fontSize: 11, fontWeight: '700', paddingVertical: 6, paddingHorizontal: 8, borderRadius: RADII.pill, backgroundColor: colors.bgCardAlt },
 });
+
+function themeTint(colors) {
+  return colors.bg === '#f4efe6' ? 'rgba(255, 249, 241, 0.08)' : 'rgba(11, 16, 32, 0.18)';
+}

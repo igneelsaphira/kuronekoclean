@@ -7,16 +7,20 @@
     "tunnel": "expo start --tunnel --port 8090",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build": "expo export --platform web",
+    "vercel-build": "expo export --platform web"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
+    "@react-native-async-storage/async-storage": "^3.0.2",
     "@react-navigation/bottom-tabs": "^6.5.11",
     "@react-navigation/native": "^6.1.9",
-    "@react-navigation/native-stack": "^6.11.0",
     "expo": "^54.0.33",
+    "expo-constants": "^55.0.14",
+    "expo-device": "^55.0.15",
     "expo-font": "~14.0.11",
-    "expo-image": "~3.0.11",
+    "expo-notifications": "^55.0.19",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-dom": "19.1.0",

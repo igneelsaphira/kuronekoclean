@@ -1,45 +1,68 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import { APP_ILLUSTRATIONS } from '../data/illustrations';
+import { ROOM_THEMES } from '../data/shopItems';
 
-// Escena vectorial inspirada en tu fondo pastel:
-// - Ventana a la izquierda
-// - Pizarra con 3 notas
-// - Cojín/cama abajo de la pizarra (para el gatito futuro)
-export default function StudyCornerRoom() {
+export default function StudyCornerRoom({ themeKey = 'default', purchasedItems = {} }) {
+  const palette = ROOM_THEMES[themeKey] || ROOM_THEMES.default;
+
   return (
-    <View style={styles.room}>
-      <View style={styles.wallGlow} />
-      <View style={styles.floorGlow} />
-      <View style={styles.floorLine} />
+    <View style={[styles.room, { backgroundColor: palette.wall }]}> 
+      <View style={[styles.wallGlow, { backgroundColor: palette.wallGlow }]} />
+      <View style={[styles.floorGlow, { backgroundColor: palette.floorGlow }]} />
+      <View style={[styles.floorLine, { backgroundColor: palette.floorLine }]} />
 
       <View style={styles.windowWrap}>
-        <View style={styles.windowArch} />
-        <View style={styles.windowFrame}>
-          <View style={styles.vine} />
-          <View style={styles.windowInner}>
-            <View style={styles.cloudA} />
-            <View style={styles.cloudB} />
-          </View>
-          <View style={styles.windowCrossV} />
-          <View style={styles.windowCrossH} />
+        <View style={[styles.windowArch, { backgroundColor: palette.windowArch }]} />
+        <View style={[styles.windowFrame, { borderColor: palette.windowBorder, backgroundColor: palette.windowInner }]}> 
+          <View style={[styles.vine, { backgroundColor: palette.vine }]} />
+          <View style={[styles.windowInner, { backgroundColor: palette.windowInner }]} />
+          <View style={[styles.cloudA, { backgroundColor: palette.cloudA }]} />
+          <View style={[styles.cloudB, { backgroundColor: palette.cloudB }]} />
+          <View style={[styles.windowCrossV, { backgroundColor: palette.windowBorder }]} />
+          <View style={[styles.windowCrossH, { backgroundColor: palette.windowBorder }]} />
         </View>
       </View>
 
-      <View style={styles.boardWrap}>
-        <View style={styles.boardInner} />
-        <View style={[styles.note, styles.noteA]}>
-          <View style={[styles.pin, styles.pinA]} />
-        </View>
-        <View style={[styles.note, styles.noteB]}>
-          <View style={[styles.pin, styles.pinB]} />
-        </View>
-        <View style={[styles.note, styles.noteC]}>
-          <View style={[styles.pin, styles.pinC]} />
-        </View>
+      <View style={[styles.boardWrap, { borderColor: palette.boardFrame, backgroundColor: palette.board }]}> 
+        <View style={[styles.boardInner, { backgroundColor: palette.boardInner }]} />
+        <View style={[styles.note, styles.noteA, { backgroundColor: palette.noteA }]} />
+        <View style={[styles.note, styles.noteB, { backgroundColor: palette.noteB }]} />
+        <View style={[styles.note, styles.noteC, { backgroundColor: palette.noteC }]} />
       </View>
 
-      <View style={styles.cushionShadow} />
-      <View style={styles.cushion} />
+      <View style={styles.wallArtFrame}>
+        <Image source={APP_ILLUSTRATIONS.studyScene} style={styles.wallArtImage} resizeMode="contain" />
+      </View>
+
+      <View style={[styles.cushionShadow, { backgroundColor: palette.cushionShadow }]} />
+      <View style={[styles.cushion, { backgroundColor: palette.cushion, borderColor: palette.cushionBorder }]} />
+
+      {purchasedItems.toy_bell ? (
+        <View style={styles.bellWrap}>
+          <View style={styles.bellLine} />
+          <Text style={styles.bellEmoji}>🔔</Text>
+        </View>
+      ) : null}
+
+      {purchasedItems.badge_star ? (
+        <View style={styles.starJarWrap}>
+          <Text style={styles.starJarEmoji}>⭐</Text>
+        </View>
+      ) : null}
+
+      {purchasedItems.moon_mobile ? (
+        <View style={styles.moonWrap}>
+          <View style={styles.moonLine} />
+          <Text style={styles.moonEmoji}>🌙</Text>
+        </View>
+      ) : null}
+
+      {purchasedItems.plant_friend ? (
+        <View style={styles.plantWrap}>
+          <Text style={styles.plantEmoji}>🪴</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -47,11 +70,9 @@ export default function StudyCornerRoom() {
 const styles = StyleSheet.create({
   room: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#8da7e8',
   },
   wallGlow: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 190, 230, 0.22)',
   },
   floorGlow: {
     position: 'absolute',
@@ -59,7 +80,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: '31%',
-    backgroundColor: 'rgba(220, 205, 255, 0.45)',
   },
   floorLine: {
     position: 'absolute',
@@ -67,7 +87,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: '30%',
     height: 2,
-    backgroundColor: 'rgba(255, 240, 245, 0.65)',
   },
   windowWrap: {
     position: 'absolute',
@@ -84,7 +103,6 @@ const styles = StyleSheet.create({
     height: '24%',
     borderTopLeftRadius: 140,
     borderTopRightRadius: 140,
-    backgroundColor: 'rgba(240, 208, 229, 0.52)',
   },
   windowFrame: {
     marginTop: '16%',
@@ -92,13 +110,10 @@ const styles = StyleSheet.create({
     height: '84%',
     borderRadius: 28,
     borderWidth: 5,
-    borderColor: 'rgba(237, 206, 224, 0.9)',
     overflow: 'hidden',
-    backgroundColor: 'rgba(168, 205, 255, 0.65)',
   },
   windowInner: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(158, 200, 255, 0.55)',
   },
   cloudA: {
     position: 'absolute',
@@ -107,7 +122,6 @@ const styles = StyleSheet.create({
     width: '58%',
     height: '26%',
     borderRadius: 80,
-    backgroundColor: 'rgba(255, 235, 242, 0.72)',
   },
   cloudB: {
     position: 'absolute',
@@ -116,7 +130,6 @@ const styles = StyleSheet.create({
     width: '42%',
     height: '20%',
     borderRadius: 80,
-    backgroundColor: 'rgba(248, 224, 255, 0.65)',
   },
   windowCrossV: {
     position: 'absolute',
@@ -124,7 +137,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: '48%',
     width: 3,
-    backgroundColor: 'rgba(237, 206, 224, 0.9)',
   },
   windowCrossH: {
     position: 'absolute',
@@ -132,7 +144,6 @@ const styles = StyleSheet.create({
     right: 0,
     top: '48%',
     height: 3,
-    backgroundColor: 'rgba(237, 206, 224, 0.9)',
   },
   vine: {
     position: 'absolute',
@@ -141,7 +152,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: '55%',
     borderRadius: 10,
-    backgroundColor: 'rgba(130, 184, 139, 0.72)',
   },
   boardWrap: {
     position: 'absolute',
@@ -151,53 +161,54 @@ const styles = StyleSheet.create({
     height: '38%',
     borderRadius: 10,
     borderWidth: 6,
-    borderColor: 'rgba(205, 160, 144, 0.95)',
-    backgroundColor: 'rgba(216, 186, 160, 0.82)',
+  },
+  wallArtFrame: {
+    position: 'absolute',
+    left: '40%',
+    top: '10%',
+    width: '18%',
+    aspectRatio: 0.8,
+    borderRadius: 10,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  wallArtImage: {
+    width: '90%',
+    height: '90%',
   },
   boardInner: {
     ...StyleSheet.absoluteFillObject,
     margin: 6,
     borderRadius: 4,
-    backgroundColor: 'rgba(207, 171, 141, 0.65)',
   },
   note: {
     position: 'absolute',
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: 'rgba(207, 170, 188, 0.55)',
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   noteA: {
     left: '11%',
     top: '16%',
     width: '28%',
     height: '34%',
-    backgroundColor: 'rgba(255, 243, 199, 0.95)',
   },
   noteB: {
     left: '41%',
     top: '44%',
     width: '28%',
     height: '28%',
-    backgroundColor: 'rgba(216, 204, 250, 0.95)',
   },
   noteC: {
     right: '8%',
     top: '16%',
     width: '30%',
     height: '44%',
-    backgroundColor: 'rgba(252, 247, 244, 0.95)',
   },
-  pin: {
-    position: 'absolute',
-    top: -7,
-    alignSelf: 'center',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  pinA: { backgroundColor: 'rgba(255, 178, 206, 0.95)' },
-  pinB: { backgroundColor: 'rgba(167, 207, 255, 0.95)' },
-  pinC: { backgroundColor: 'rgba(246, 181, 225, 0.95)' },
   cushionShadow: {
     position: 'absolute',
     right: '16%',
@@ -205,7 +216,6 @@ const styles = StyleSheet.create({
     width: '46%',
     height: '7.5%',
     borderRadius: 999,
-    backgroundColor: 'rgba(115, 92, 154, 0.24)',
   },
   cushion: {
     position: 'absolute',
@@ -214,8 +224,52 @@ const styles = StyleSheet.create({
     width: '46%',
     height: '9.5%',
     borderRadius: 999,
-    backgroundColor: 'rgba(246, 203, 233, 0.95)',
     borderWidth: 2,
-    borderColor: 'rgba(241, 219, 246, 0.95)',
+  },
+  bellWrap: {
+    position: 'absolute',
+    top: '12%',
+    right: '18%',
+    alignItems: 'center',
+  },
+  bellLine: {
+    width: 2,
+    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    marginBottom: 2,
+  },
+  bellEmoji: {
+    fontSize: 18,
+  },
+  starJarWrap: {
+    position: 'absolute',
+    left: '44%',
+    top: '28%',
+  },
+  starJarEmoji: {
+    fontSize: 18,
+  },
+  moonWrap: {
+    position: 'absolute',
+    left: '26%',
+    top: '7%',
+    alignItems: 'center',
+  },
+  moonLine: {
+    width: 2,
+    height: 24,
+    backgroundColor: 'rgba(255,255,255,0.46)',
+    marginBottom: 4,
+  },
+  moonEmoji: {
+    fontSize: 20,
+  },
+  plantWrap: {
+    position: 'absolute',
+    right: '20%',
+    bottom: '18%',
+  },
+  plantEmoji: {
+    fontSize: 20,
   },
 });

@@ -21,7 +21,14 @@
       "package": "com.kuroclean.app"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/kuro-cat.optimized.png",
+          "color": "#7A84D6"
+        }
+      ]
     ]
   }
 }

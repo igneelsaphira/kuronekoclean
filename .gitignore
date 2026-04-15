@@ -31,3 +31,5 @@ yarn-error.*
 .DS_Store
 Thumbs.db
 nul
+
+.vercel
