@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import { useCat } from '../context/CatContext';
-import { APP_ILLUSTRATIONS } from '../data/illustrations';
 import { ROOM_THEMES, SHOP_ITEMS } from '../data/shopItems';
 import { TASK_ART_OPTIONS, TASK_ILLUSTRATIONS, getTaskIllustration } from '../data/taskIllustrations';
 import { RADII } from '../theme/tokens';
@@ -38,9 +37,6 @@ export default function TiendaScreen() {
   const themeItems = SHOP_ITEMS.filter((item) => item.type === 'theme');
   const decorItems = SHOP_ITEMS.filter((item) => item.type === 'decor');
   const taskArtItems = SHOP_ITEMS.filter((item) => item.type === 'taskArt');
-  const placeholderGallery = [
-    { key: 'scene', image: APP_ILLUSTRATIONS.studyScene, title: 'Vista del cuarto' },
-  ];
 
   return (
     <ScrollView
@@ -59,17 +55,6 @@ export default function TiendaScreen() {
       <View style={styles.walletRow}>
         <WalletChip styles={styles} icon="logo-bitcoin" label="Monedas" value={monedas} tint={colors.gold} />
         <WalletChip styles={styles} icon="heart" label="Corazones" value={corazones} tint={colors.pinkStrong} />
-      </View>
-
-      <View style={styles.galleryStrip}>
-        {placeholderGallery.map((item) => (
-            <View key={item.key} style={styles.galleryTile}>
-            <TouchableOpacity style={styles.galleryImageWrap} activeOpacity={0.9} delayLongPress={2000} onLongPress={() => setPreviewItem({ source: item.image, title: item.title })}>
-              <Image source={item.image} style={styles.galleryImage} resizeMode="contain" />
-            </TouchableOpacity>
-            <Text style={styles.galleryLabel}>{item.title}</Text>
-          </View>
-        ))}
       </View>
 
       <View style={[styles.desktopShopGrid, isWideLayout && styles.desktopShopGridWide]}>
@@ -234,39 +219,6 @@ const createStyles = (colors) => StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginBottom: 18,
-  },
-  galleryStrip: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 18,
-  },
-  galleryTile: {
-    flex: 1,
-    minHeight: 126,
-    padding: 10,
-    borderRadius: RADII.lg,
-    backgroundColor: colors.bgGlass,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  galleryImageWrap: {
-    height: 78,
-    borderRadius: RADII.md,
-    backgroundColor: colors.bgGlassStrong,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-    overflow: 'hidden',
-  },
-  galleryImage: {
-    width: '84%',
-    height: '84%',
-  },
-  galleryLabel: {
-    color: colors.text,
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
   },
   walletChip: {
     flex: 1,
