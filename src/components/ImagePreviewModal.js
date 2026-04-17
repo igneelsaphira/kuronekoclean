@@ -9,7 +9,7 @@ export default function ImagePreviewModal({ visible, source, title, colors, onCl
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
-        <View style={[styles.card, { backgroundColor: colors.bgGlassStrong, borderColor: colors.borderStrong }]}>
+        <View style={[styles.card, { backgroundColor: colors.bgGlassStrong, borderColor: colors.borderStrong }]}> 
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.text }]}>{title || 'Vista ampliada'}</Text>
             <Pressable style={[styles.closeBtn, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]} onPress={onClose}>
@@ -20,7 +20,7 @@ export default function ImagePreviewModal({ visible, source, title, colors, onCl
             <Image source={source} style={styles.image} resizeMode="contain" />
           </View>
           {actions ? <View style={styles.actionsWrap}>{actions}</View> : null}
-          <Text style={[styles.note, { color: colors.textMuted }]}>Mantén apretado 2 segundos cualquier dibujo para verlo más grande.</Text>
+          <Text style={[styles.note, { color: colors.textMuted }]}>{note || 'Toca el dibujo para verlo mas grande.'}</Text>
         </View>
       </Pressable>
     </Modal>

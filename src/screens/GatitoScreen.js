@@ -178,9 +178,7 @@ export default function GatitoScreen() {
   ];
 
   const cozyScenes = [
-    { key: 'cocina', image: TASK_ILLUSTRATIONS.s3, title: 'Cocina amable', text: 'Una escena pequeña de orden que luego puedes reemplazar con tu arte final.' },
-    { key: 'cama', image: getTaskIllustration('d4', equippedTaskArt), title: 'Cama lista', text: 'Contenedor seguro para futuras ilustraciones de descanso y orden.' },
-    { key: 'polvo', image: TASK_ILLUSTRATIONS.d10, title: 'Polvito fuera', text: 'Placeholder bonito para la sensación de limpio y aire nuevo.' },
+    { key: 'pieza', image: APP_ILLUSTRATIONS.studyScene, title: 'Tu pieza', text: 'La pieza queda aqui al inicio como referencia principal mientras despues cambiamos el gatito.' },
   ];
 
   return (
@@ -436,3 +434,4 @@ const createStyles = (colors) => StyleSheet.create({
 function themeTint(colors) {
   return colors.bg === '#f4efe6' ? 'rgba(255, 249, 241, 0.08)' : 'rgba(242, 187, 224, 0.12)';
 }
+

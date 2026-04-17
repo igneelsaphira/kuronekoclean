@@ -32,8 +32,7 @@ function TaskCard({ task, accent, colors, illustrationSource, onToggle, onPrevie
       <TouchableOpacity
         style={[styles.taskEmojiWrap, { borderColor: `${accent}55`, backgroundColor: `${accent}18` }]}
         activeOpacity={0.9}
-        delayLongPress={2000}
-        onLongPress={() => imageSource && onPreview?.(imageSource, task.nombre)}
+        onPress={() => imageSource && onPreview?.(imageSource, task.nombre)}
       >
         {imageSource ? <Image source={imageSource} style={styles.taskArt} resizeMode="contain" /> : <Text style={styles.taskEmoji}>{task.icono}</Text>}
       </TouchableOpacity>

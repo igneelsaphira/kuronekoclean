@@ -40,8 +40,6 @@ export default function TiendaScreen() {
   const taskArtItems = SHOP_ITEMS.filter((item) => item.type === 'taskArt');
   const placeholderGallery = [
     { key: 'scene', image: APP_ILLUSTRATIONS.studyScene, title: 'Vista del cuarto' },
-    { key: 'clean', image: TASK_ILLUSTRATIONS.d7, title: 'Limpieza suave' },
-    { key: 'laundry', image: TASK_ILLUSTRATIONS.s1, title: 'Ropita ordenada' },
   ];
 
   return (
@@ -461,3 +459,4 @@ const createStyles = (colors) => StyleSheet.create({
     height: '80%',
   },
 });
+
