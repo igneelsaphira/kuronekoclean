@@ -1,15 +1,15 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { APP_ILLUSTRATIONS } from '../data/illustrations';
 import ImagePreviewModal from '../components/ImagePreviewModal';
+import { APP_ILLUSTRATIONS } from '../data/illustrations';
 import { TASK_ILLUSTRATIONS } from '../data/taskIllustrations';
-import { useCat } from '../context/CatContext';
 import { useAuth } from '../context/AuthContext';
-import { REMINDER_PRESETS } from '../utils/notifications';
+import { useCat } from '../context/CatContext';
 import { RADII } from '../theme/tokens';
 import { useAppTheme } from '../theme/useAppTheme';
+import { REMINDER_PRESETS } from '../utils/notifications';
 
 function ToggleRow({ styles, title, note, value, onPress, icon }) {
   return (
@@ -34,7 +34,6 @@ export default function AjustesScreen() {
   const isWideLayout = Platform.OS === 'web' && width >= 1180;
   const { colors, themeMode, toggleThemeMode } = useAppTheme();
   const { user, configured, authBusy, authError, signInWithGoogle, signOut } = useAuth();
-  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     settings,
     notificationStatus,
@@ -46,8 +45,9 @@ export default function AjustesScreen() {
     setReminderEnabled,
     setReminderSlot,
   } = useCat();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const settingsGallery = [APP_ILLUSTRATIONS.studyScene, TASK_ILLUSTRATIONS.d1, TASK_ILLUSTRATIONS.d7];
-  const [previewItem, setPreviewItem] = React.useState(null);
+  const [previewItem, setPreviewItem] = useState(null);
 
   return (
     <ScrollView
@@ -61,11 +61,58 @@ export default function AjustesScreen() {
     >
       <Text style={styles.eyebrow}>Ajustes</Text>
       <Text style={styles.title}>Haz la app mas tuya.</Text>
-      <Text style={styles.subtitle}>Recordatorios suaves, modo cozy, bright cálido y una vitrina de logros para Kuroneko.</Text>
+      <Text style={styles.subtitle}>Recordatorios suaves, modo cozy, tema calido y una vitrina de logros para Kuroneko.</Text>
+
+      <View style={[styles.sectionCard, styles.accountHeroCard]}>
+        <View style={styles.accountHeroHeader}>
+          <View style={styles.accountHeroCopy}>
+            <Text style={styles.sectionTitle}>Cuenta y guardado</Text>
+            <Text style={styles.sectionText}>
+              Entra con Google para no perder tareas, monedas, compras, tema e iconos cuando cambies de equipo o borres la app.
+            </Text>
+          </View>
+          <View style={styles.accountHeroBadge}>
+            <Ionicons name={user ? 'cloud-done-outline' : 'cloud-outline'} size={18} color={user ? colors.mintStrong : colors.blueStrong} />
+            <Text style={styles.accountHeroBadgeText}>{user ? 'Guardando' : 'Sin login'}</Text>
+          </View>
+        </View>
+
+        <View style={styles.accountStatusCard}>
+          <Text style={styles.accountStatusTitle}>{user?.email || 'Sin sesion activa'}</Text>
+          <Text style={styles.accountStatusText}>
+            {cloudSaveEnabled
+              ? `Guardado remoto activo (${syncStatus}).`
+              : configured
+                ? 'Todavia no has iniciado sesion. Puedes hacerlo aqui mismo.'
+                : 'Falta configurar Supabase para activar el login.'}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.accountPrimaryButton, styles.accountHeroButton]}
+          onPress={user ? signOut : signInWithGoogle}
+          activeOpacity={0.82}
+          disabled={authBusy || !configured}
+        >
+          <Ionicons name={user ? 'log-out-outline' : 'logo-google'} size={16} color={colors.text} />
+          <Text style={styles.accountPrimaryButtonText}>
+            {authBusy ? 'Procesando...' : user ? 'Cerrar sesion' : 'Entrar con Google'}
+          </Text>
+        </TouchableOpacity>
+
+        {!configured ? <Text style={styles.accountHelperText}>Agrega las variables de Supabase para habilitar cuentas y nube.</Text> : null}
+        {authError ? <Text style={styles.accountErrorText}>{authError}</Text> : null}
+      </View>
 
       <View style={styles.galleryRow}>
         {settingsGallery.map((image, index) => (
-          <TouchableOpacity key={index} style={styles.galleryTile} activeOpacity={0.9} delayLongPress={2000} onLongPress={() => setPreviewItem({ source: image, title: 'Vista ajustes' })}>
+          <TouchableOpacity
+            key={index}
+            style={styles.galleryTile}
+            activeOpacity={0.9}
+            delayLongPress={2000}
+            onLongPress={() => setPreviewItem({ source: image, title: 'Vista ajustes' })}
+          >
             <Image source={image} style={styles.galleryImage} resizeMode="contain" />
           </TouchableOpacity>
         ))}
@@ -74,7 +121,7 @@ export default function AjustesScreen() {
       <View style={[styles.settingsGrid, isWideLayout && styles.settingsGridWide]}>
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Tema</Text>
-          <Text style={styles.sectionText}>Dark sigue siendo la base nocturna. Bright ahora es mas crema, cálido y doméstico.</Text>
+          <Text style={styles.sectionText}>Dark sigue siendo la base nocturna. Bright ahora es mas crema, calido y domestico.</Text>
 
           <TouchableOpacity style={styles.themeSwitch} onPress={toggleThemeMode} activeOpacity={0.84}>
             <View style={styles.themeOption}>
@@ -102,7 +149,7 @@ export default function AjustesScreen() {
           <ToggleRow
             styles={styles}
             title="Sonido suave"
-            note="Activa pequeños pops y tonos tiernos en minijuegos y recompensas."
+            note="Activa pequenos pops y tonos tiernos en minijuegos y recompensas."
             value={settings.soundEnabled}
             onPress={() => updateSettingValue('soundEnabled', !settings.soundEnabled)}
             icon="musical-notes-outline"
@@ -114,13 +161,13 @@ export default function AjustesScreen() {
           <Text style={styles.sectionText}>
             {Platform.OS === 'web'
               ? 'En web solo queda configurado. En celular podras usar las notificaciones reales.'
-              : 'Activa una señal diaria pequeña para volver a la rutina sin sentir presión.'}
+              : 'Activa una senal diaria pequena para volver a la rutina sin sentir presion.'}
           </Text>
 
           <ToggleRow
             styles={styles}
             title="Recordatorio diario"
-            note={notificationStatus === 'denied' ? 'El permiso fue rechazado. Puedes intentarlo otra vez.' : 'Una notificación breve y amable una vez al día.'}
+            note={notificationStatus === 'denied' ? 'El permiso fue rechazado. Puedes intentarlo otra vez.' : 'Una notificacion breve y amable una vez al dia.'}
             value={settings.remindersEnabled}
             onPress={() => setReminderEnabled(!settings.remindersEnabled)}
             icon="notifications-outline"
@@ -137,7 +184,9 @@ export default function AjustesScreen() {
                   activeOpacity={0.82}
                 >
                   <Text style={[styles.slotButtonTitle, active && styles.slotButtonTitleActive]}>{preset.label}</Text>
-                  <Text style={[styles.slotButtonText, active && styles.slotButtonTextActive]}>{`${preset.hour.toString().padStart(2, '0')}:${preset.minute.toString().padStart(2, '0')}`}</Text>
+                  <Text style={[styles.slotButtonText, active && styles.slotButtonTextActive]}>
+                    {`${preset.hour.toString().padStart(2, '0')}:${preset.minute.toString().padStart(2, '0')}`}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -145,37 +194,10 @@ export default function AjustesScreen() {
         </View>
       </View>
 
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Cuenta</Text>
-        <Text style={styles.sectionText}>Entra con Google para guardar tareas, monedas, compras, tema e iconos en tu cuenta.</Text>
-
-        <View style={styles.accountStatusCard}>
-          <Text style={styles.accountStatusTitle}>{user?.email || 'Sin sesion activa'}</Text>
-          <Text style={styles.accountStatusText}>
-            {cloudSaveEnabled ? `Guardado remoto activo (${syncStatus}).` : configured ? 'Todavia no has iniciado sesion.' : 'Falta configurar Supabase para activar el login.'}
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.accountPrimaryButton}
-          onPress={user ? signOut : signInWithGoogle}
-          activeOpacity={0.82}
-          disabled={authBusy || !configured}
-        >
-          <Ionicons name={user ? 'log-out-outline' : 'logo-google'} size={16} color={colors.text} />
-          <Text style={styles.accountPrimaryButtonText}>
-            {authBusy ? 'Procesando...' : user ? 'Cerrar sesion' : 'Entrar con Google'}
-          </Text>
-        </TouchableOpacity>
-
-        {!configured ? <Text style={styles.accountHelperText}>Agrega las variables de Supabase para habilitar cuentas y nube.</Text> : null}
-        {authError ? <Text style={styles.accountErrorText}>{authError}</Text> : null}
-      </View>
-
       <View style={[styles.settingsGrid, isWideLayout && styles.settingsGridWide]}>
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Logros</Text>
-          <Text style={styles.sectionText}>Microdesbloqueos que muestran como va creciendo la relación con Kuroneko.</Text>
+          <Text style={styles.sectionText}>Microdesbloqueos que muestran como va creciendo la relacion con Kuroneko.</Text>
           {achievements.map((achievement) => (
             <View key={achievement.id} style={[styles.achievementRow, achievement.unlocked && styles.achievementRowUnlocked]}>
               <View style={[styles.achievementIconWrap, achievement.unlocked && styles.achievementIconWrapUnlocked]}>
@@ -185,19 +207,33 @@ export default function AjustesScreen() {
                 <Text style={styles.achievementTitle}>{achievement.title}</Text>
                 <Text style={styles.achievementNote}>{achievement.note}</Text>
               </View>
-              <Text style={[styles.achievementState, achievement.unlocked && styles.achievementStateUnlocked]}>{achievement.unlocked ? 'Listo' : 'Bloq.'}</Text>
+              <Text style={[styles.achievementState, achievement.unlocked && styles.achievementStateUnlocked]}>
+                {achievement.unlocked ? 'Listo' : 'Bloq.'}
+              </Text>
             </View>
           ))}
         </View>
 
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Actividad</Text>
-          <View style={styles.activityRow}><Text style={styles.activityLabel}>Minijuegos jugados</Text><Text style={styles.activityValue}>{minigameStats.totalPlayed || 0}</Text></View>
-          <View style={styles.activityRow}><Text style={styles.activityLabel}>Ultimo minijuego</Text><Text style={styles.activityValue}>{minigameStats.lastPlayedGame || 'ninguno'}</Text></View>
+          <View style={styles.activityRow}>
+            <Text style={styles.activityLabel}>Minijuegos jugados</Text>
+            <Text style={styles.activityValue}>{minigameStats.totalPlayed || 0}</Text>
+          </View>
+          <View style={styles.activityRow}>
+            <Text style={styles.activityLabel}>Ultimo minijuego</Text>
+            <Text style={styles.activityValue}>{minigameStats.lastPlayedGame || 'ninguno'}</Text>
+          </View>
         </View>
       </View>
 
-      <ImagePreviewModal visible={Boolean(previewItem)} source={previewItem?.source} title={previewItem?.title} colors={colors} onClose={() => setPreviewItem(null)} />
+      <ImagePreviewModal
+        visible={Boolean(previewItem)}
+        source={previewItem?.source}
+        title={previewItem?.title}
+        colors={colors}
+        onClose={() => setPreviewItem(null)}
+      />
     </ScrollView>
   );
 }
@@ -273,6 +309,35 @@ const createStyles = (colors) => {
       borderColor: colors.border,
       marginBottom: 16,
     },
+    accountHeroCard: {
+      backgroundColor: colors.bgGlassStrong,
+      borderColor: colors.borderStrong,
+    },
+    accountHeroHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: 12,
+    },
+    accountHeroCopy: {
+      flex: 1,
+    },
+    accountHeroBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      borderRadius: RADII.pill,
+      backgroundColor: colors.bgCardAlt,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    accountHeroBadgeText: {
+      color: colors.textSoft,
+      fontSize: 12,
+      fontWeight: '700',
+    },
     sectionTitle: {
       color: colors.text,
       fontSize: 18,
@@ -314,6 +379,9 @@ const createStyles = (colors) => {
       backgroundColor: colors.bgCardAlt,
       borderWidth: 1,
       borderColor: colors.borderStrong,
+    },
+    accountHeroButton: {
+      minHeight: 48,
     },
     accountPrimaryButtonText: {
       color: colors.text,
