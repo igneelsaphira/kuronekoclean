@@ -50,7 +50,7 @@ export default function TiendaScreen() {
     >
       <Text style={styles.eyebrow}>Tienda</Text>
       <Text style={styles.title}>Moneditas para mimar a Kuroneko.</Text>
-      <Text style={styles.subtitle}>Todo lo que compres aquí queda preparado para ser reemplazado por tu arte final después.</Text>
+      <Text style={styles.subtitle}>Todo lo que compres aqui se guarda para Kuroneko y queda listo para usar en su lugar correcto.</Text>
 
       <View style={styles.walletRow}>
         <WalletChip styles={styles} icon="logo-bitcoin" label="Monedas" value={monedas} tint={colors.gold} />
@@ -60,7 +60,7 @@ export default function TiendaScreen() {
       <View style={[styles.desktopShopGrid, isWideLayout && styles.desktopShopGridWide]}>
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Temas del cuarto</Text>
-          <Text style={styles.sectionText}>Cada tema cambia la atmósfera general. La ilustración final la podrás ir reemplazando después sin romper el layout.</Text>
+          <Text style={styles.sectionText}>Cada tema cambia la atmosfera general. La ilustracion final la podras ir reemplazando despues sin romper el layout.</Text>
 
           <View style={styles.themePreview}>
               <View style={styles.paletteRow}>
@@ -106,7 +106,7 @@ export default function TiendaScreen() {
 
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Decoraciones visibles</Text>
-          <Text style={styles.sectionText}>Estas piezas aparecen en el cuarto de Kuroneko y quedan listas para que después pongas tus dibujos definitivos.</Text>
+          <Text style={styles.sectionText}>Estas piezas aparecen en el cuarto de Kuroneko y quedan listas para que despues pongas tus dibujos definitivos.</Text>
 
           {decorItems.map((item) => {
             const owned = Boolean(purchasedItems[item.id]);
@@ -133,7 +133,7 @@ export default function TiendaScreen() {
 
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>Iconos de tareas</Text>
-        <Text style={styles.sectionText}>Cada variante solo puede vivir en su tarea correspondiente. No se puede poner una cama en lavar loza ni algo absurdo así.</Text>
+        <Text style={styles.sectionText}>Cada variante vive en su tarea correspondiente. Asi se entiende clarito que va en cada lugar.</Text>
 
         <View style={styles.taskArtCurrent}>
           <TouchableOpacity style={styles.taskArtPreview} activeOpacity={0.9} delayLongPress={2000} onLongPress={() => setPreviewItem({ source: getTaskIllustration('d4', equippedTaskArt), title: 'Tender camas / ordenar' })}>
@@ -141,7 +141,7 @@ export default function TiendaScreen() {
           </TouchableOpacity>
           <View style={styles.taskArtCurrentCopy}>
             <Text style={styles.shopItemTitle}>Tender camas / ordenar</Text>
-            <Text style={styles.shopItemText}>Slot dedicado para iconos de cama y descanso. Cuando me pases tu gatito cama definitivo, lo enchufamos aquí.</Text>
+            <Text style={styles.shopItemText}>Slot dedicado para iconos de cama y descanso. Ahora ya incluye la version comprable del gatito cama naranjoso.</Text>
           </View>
         </View>
 
@@ -158,7 +158,7 @@ export default function TiendaScreen() {
 
               <View style={styles.shopItemCopy}>
                 <Text style={styles.shopItemTitle}>{option.label}</Text>
-                <Text style={styles.shopItemText}>{isDefault ? 'Icono base actual para esta tarea.' : 'Espacio reservado para tu icono especial de cama. Al reemplazar el archivo, cambiará aquí mismo.'}</Text>
+                <Text style={styles.shopItemText}>{isDefault ? 'Icono base actual para esta tarea.' : 'Version especial comprable para Tender camas / ordenar.'}</Text>
               </View>
 
               <TouchableOpacity
@@ -411,4 +411,5 @@ const createStyles = (colors) => StyleSheet.create({
     height: '80%',
   },
 });
+
 

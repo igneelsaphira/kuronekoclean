@@ -36,8 +36,8 @@ export const TASK_ART_OPTIONS = {
     },
     {
       id: 'd4_catbed_placeholder',
-      source: require('../../assets/icon-tender-cama.optimized.png'),
-      label: 'Espacio para gatito cama',
+      source: require('../../assets/icon-tender-cama-naranja.png'),
+      label: 'Gatito cama naranjoso',
       purchasable: true,
     },
   ],
