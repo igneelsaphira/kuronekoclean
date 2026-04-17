@@ -37,6 +37,7 @@ export default function TiendaScreen() {
   const themeItems = SHOP_ITEMS.filter((item) => item.type === 'theme');
   const decorItems = SHOP_ITEMS.filter((item) => item.type === 'decor');
   const taskArtItems = SHOP_ITEMS.filter((item) => item.type === 'taskArt');
+  const purchasableTaskArtOptions = TASK_ART_OPTIONS.d4.filter((option) => option.purchasable);
 
   return (
     <ScrollView
@@ -137,18 +138,17 @@ export default function TiendaScreen() {
 
         <View style={styles.taskArtCurrent}>
           <TouchableOpacity style={styles.taskArtPreview} activeOpacity={0.9} delayLongPress={2000} onLongPress={() => setPreviewItem({ source: getTaskIllustration('d4', equippedTaskArt), title: 'Tender camas / ordenar' })}>
-            <Image source={getTaskIllustration('d4', equippedTaskArt)} style={styles.taskArtPreviewImage} resizeMode="contain" />
+            <Image source={purchasableTaskArtOptions[0]?.source || getTaskIllustration('d4', equippedTaskArt)} style={styles.taskArtPreviewImage} resizeMode="contain" />
           </TouchableOpacity>
           <View style={styles.taskArtCurrentCopy}>
             <Text style={styles.shopItemTitle}>Tender camas / ordenar</Text>
-            <Text style={styles.shopItemText}>Slot dedicado para iconos de cama y descanso. Ahora ya incluye la version comprable del gatito cama naranjoso.</Text>
+            <Text style={styles.shopItemText}>Aqui solo se muestra la version comprable para esta tarea, sin mezclarla con el icono base.</Text>
           </View>
         </View>
 
-        {TASK_ART_OPTIONS.d4.map((option) => {
-          const isDefault = !option.purchasable;
+        {purchasableTaskArtOptions.map((option) => {
           const storeItem = taskArtItems.find((item) => item.taskArtOptionId === option.id);
-          const owned = isDefault || Boolean(storeItem && purchasedItems[storeItem.id]);
+          const owned = Boolean(storeItem && purchasedItems[storeItem.id]);
 
           return (
             <View key={option.id} style={styles.shopItem}>
@@ -158,7 +158,7 @@ export default function TiendaScreen() {
 
               <View style={styles.shopItemCopy}>
                 <Text style={styles.shopItemTitle}>{option.label}</Text>
-                <Text style={styles.shopItemText}>{isDefault ? 'Icono base actual para esta tarea.' : 'Version especial comprable para Tender camas / ordenar.'}</Text>
+                <Text style={styles.shopItemText}>Version especial comprable para Tender camas / ordenar.</Text>
               </View>
 
               <TouchableOpacity
@@ -170,7 +170,7 @@ export default function TiendaScreen() {
                 }}
                 activeOpacity={0.82}
               >
-                <Text style={styles.shopButtonText}>{isDefault ? 'Incluido' : owned ? 'Comprado' : `${storeItem?.cost || 0} monedas`}</Text>
+                <Text style={styles.shopButtonText}>{owned ? 'Comprado' : `${storeItem?.cost || 0} monedas`}</Text>
               </TouchableOpacity>
             </View>
           );
