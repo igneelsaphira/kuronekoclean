@@ -493,8 +493,8 @@ const createStyles = (colors) => StyleSheet.create({
     backgroundColor: colors.bgGlass,
   },
   taskCardDone: {
-    borderColor: colors.successBorder,
-    backgroundColor: colors.successBg,
+    borderColor: `${colors.pinkStrong}4a`,
+    backgroundColor: `${colors.pink}16`,
   },
   taskEmojiWrap: {
     width: 48,
@@ -530,7 +530,7 @@ const createStyles = (colors) => StyleSheet.create({
     fontWeight: '700',
   },
   taskTitleDone: {
-    color: colors.mintStrong,
+    color: colors.pinkStrong,
     textDecorationLine: 'line-through',
   },
   durationChip: {
@@ -561,8 +561,8 @@ const createStyles = (colors) => StyleSheet.create({
     justifyContent: 'center',
   },
   checkCircleDone: {
-    backgroundColor: colors.mintStrong,
-    borderColor: colors.mintStrong,
+    backgroundColor: colors.pinkStrong,
+    borderColor: colors.pinkStrong,
   },
   previewOptionsWrap: {
     gap: 10,
