@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build": "expo export --platform web",
-    "vercel-build": "expo export --platform web"
+    "vercel-build": "expo export --platform web",
+    "preview:dist": "node preview-dist.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

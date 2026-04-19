@@ -204,6 +204,23 @@ function AuthReminderBanner({ styles, colors }) {
   );
 }
 
+function FileModeBanner({ styles, colors }) {
+  return (
+    <View style={[styles.authBanner, styles.fileModeBanner]}>
+      <View style={styles.authBannerCopy}>
+        <Text style={styles.authBannerTitle}>Esta vista local no carga bien la app</Text>
+        <Text style={styles.authBannerText}>
+          Abierta como `file://`, algunas ventanas, toques y arrastres pueden fallar. Para probarla bien, usa un servidor local en `http://localhost`.
+        </Text>
+      </View>
+      <View style={[styles.authBannerButton, styles.fileModeBadge]}>
+        <Ionicons name="warning-outline" size={14} color={colors.bg} />
+        <Text style={[styles.authBannerButtonText, styles.fileModeBadgeText]}>file://</Text>
+      </View>
+    </View>
+  );
+}
+
 function DesktopWideApp({ styles, colors, navigationTheme, themeMode }) {
   const navigationRef = useNavigationContainerRef();
   const [activeRoute, setActiveRoute] = useState('Inicio');
@@ -275,6 +292,7 @@ function ThemedAppChrome() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { width } = useWindowDimensions();
   const isWideWeb = Platform.OS === 'web' && width >= 1180;
+  const isFileMode = Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.protocol === 'file:';
 
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -309,6 +327,7 @@ function ThemedAppChrome() {
     return (
       <View style={styles.appFrame}>
         <DesktopWideApp styles={styles} colors={colors} navigationTheme={navigationTheme} themeMode={themeMode} />
+        {isFileMode ? <FileModeBanner styles={styles} colors={colors} /> : null}
         {!isAuthenticated ? <AuthReminderBanner styles={styles} colors={colors} /> : null}
       </View>
     );
@@ -317,6 +336,7 @@ function ThemedAppChrome() {
   return (
     <View style={styles.appFrame}>
       <CompactApp styles={styles} colors={colors} themeMode={themeMode} />
+      {isFileMode ? <FileModeBanner styles={styles} colors={colors} /> : null}
       {!isAuthenticated ? <AuthReminderBanner styles={styles} colors={colors} /> : null}
     </View>
   );
@@ -826,5 +846,17 @@ const createStyles = (colors) => StyleSheet.create({
     color: colors.text,
     fontSize: 12,
     fontWeight: '800',
+  },
+  fileModeBanner: {
+    top: Platform.OS === 'web' ? 90 : 124,
+    backgroundColor: colors.warningBg,
+    borderColor: colors.warningBorder,
+  },
+  fileModeBadge: {
+    backgroundColor: colors.gold,
+    borderColor: colors.gold,
+  },
+  fileModeBadgeText: {
+    color: colors.bg,
   },
 });
