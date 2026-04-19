@@ -101,6 +101,7 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
   const [selectedFoodId, setSelectedFoodId] = useState(FEED_OPTIONS[0].id);
   const [dragging, setDragging] = useState(false);
   const drag = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const webDragStart = useRef(null);
   const selectedFood = FEED_OPTIONS.find((item) => item.id === selectedFoodId) || FEED_OPTIONS[0];
 
   const resetDrag = () => {
@@ -116,6 +117,7 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
     if (!visible) return;
     setSelectedFoodId(FEED_OPTIONS[0].id);
     setDragging(false);
+    webDragStart.current = null;
     drag.setValue({ x: 0, y: 0 });
   }, [drag, visible]);
 
@@ -140,13 +142,54 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
     ]).start(deliverSelectedFood);
   };
 
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return undefined;
+
+    const handleMouseMove = (event) => {
+      if (!webDragStart.current) return;
+      const dx = event.clientX - webDragStart.current.x;
+      const dy = event.clientY - webDragStart.current.y;
+      drag.setValue({ x: dx, y: dy });
+    };
+
+    const handleMouseUp = (event) => {
+      if (!webDragStart.current) return;
+      const gesture = {
+        dx: event.clientX - webDragStart.current.x,
+        dy: event.clientY - webDragStart.current.y,
+      };
+      webDragStart.current = null;
+      handleDrop(gesture);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [drag, visible, selectedFood]);
+
   const panResponder = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: () => visible,
+    onStartShouldSetPanResponder: () => visible,
+    onStartShouldSetPanResponderCapture: () => visible,
+    onMoveShouldSetPanResponder: (_, gesture) => visible && (Math.abs(gesture.dx) > 2 || Math.abs(gesture.dy) > 2),
+    onMoveShouldSetPanResponderCapture: (_, gesture) => visible && (Math.abs(gesture.dx) > 2 || Math.abs(gesture.dy) > 2),
     onPanResponderGrant: () => setDragging(true),
     onPanResponderMove: Animated.event([null, { dx: drag.x, dy: drag.y }], { useNativeDriver: false }),
     onPanResponderRelease: (_, gesture) => handleDrop(gesture),
+    onPanResponderTerminationRequest: () => false,
     onPanResponderTerminate: resetDrag,
   }), [drag, visible, selectedFood]);
+
+  const webDragHandlers = Platform.OS === 'web' ? {
+    onMouseDown: (event) => {
+      webDragStart.current = { x: event.clientX, y: event.clientY };
+      setDragging(true);
+      drag.setValue({ x: 0, y: 0 });
+    },
+  } : {};
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -212,6 +255,7 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
                 dragging && styles.feedDragBubbleActive,
                 { borderColor: selectedFood.accent, backgroundColor: `${selectedFood.accent}2a` },
               ]}
+              {...webDragHandlers}
               {...panResponder.panHandlers}
             >
               <Text style={styles.feedDragEmoji}>{selectedFood.emoji}</Text>
