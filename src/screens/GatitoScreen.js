@@ -89,7 +89,9 @@ function IllustrationCard({ styles, image, title, text, onPress, onPreview }) {
       </TouchableOpacity>
       <View style={styles.illustrationCopy}>
         <Text style={styles.illustrationTitle}>{title}</Text>
-        <Text style={styles.illustrationText}>{text}</Text>
+        <Text style={styles.illustrationText}>
+          {title === 'Alimentar' ? 'Abre una ventanita suave con 3 comiditas para arrastrar hasta Kuro.' : text}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -97,9 +99,8 @@ function IllustrationCard({ styles, image, title, text, onPress, onPreview }) {
 
 function FeedModal({ visible, styles, colors, onClose, onFeed }) {
   const [selectedFoodId, setSelectedFoodId] = useState(FEED_OPTIONS[0].id);
-  const [targetLayout, setTargetLayout] = useState(null);
-  const [foodLayout, setFoodLayout] = useState(null);
   const [dragging, setDragging] = useState(false);
+  const targetRef = useRef(null);
   const drag = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const selectedFood = FEED_OPTIONS.find((item) => item.id === selectedFoodId) || FEED_OPTIONS[0];
 
@@ -119,31 +120,34 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
     drag.setValue({ x: 0, y: 0 });
   }, [drag, visible]);
 
+  const deliverSelectedFood = () => {
+    drag.setValue({ x: 0, y: 0 });
+    setDragging(false);
+    onFeed(selectedFood);
+  };
+
   const handleDrop = (gesture) => {
-    if (!targetLayout || !foodLayout) {
+    if (!targetRef.current?.measureInWindow) {
       resetDrag();
       return;
     }
 
-    const centerX = foodLayout.x + gesture.dx + (foodLayout.width / 2);
-    const centerY = foodLayout.y + gesture.dy + (foodLayout.height / 2);
-    const insideTarget =
-      centerX >= targetLayout.x &&
-      centerX <= targetLayout.x + targetLayout.width &&
-      centerY >= targetLayout.y &&
-      centerY <= targetLayout.y + targetLayout.height;
+    targetRef.current.measureInWindow((x, y, width, height) => {
+      const insideTarget =
+        gesture.moveX >= x &&
+        gesture.moveX <= x + width &&
+        gesture.moveY >= y &&
+        gesture.moveY <= y + height;
 
-    if (!insideTarget) {
-      resetDrag();
-      return;
-    }
+      if (!insideTarget) {
+        resetDrag();
+        return;
+      }
 
-    Animated.sequence([
-      Animated.timing(drag, { toValue: { x: 0, y: -16 }, duration: 120, useNativeDriver: false }),
-      Animated.timing(drag, { toValue: { x: 0, y: 0 }, duration: 140, useNativeDriver: false }),
-    ]).start(() => {
-      setDragging(false);
-      onFeed(selectedFood);
+      Animated.sequence([
+        Animated.timing(drag, { toValue: { x: 0, y: -16 }, duration: 120, useNativeDriver: false }),
+        Animated.timing(drag, { toValue: { x: 0, y: 0 }, duration: 140, useNativeDriver: false }),
+      ]).start(deliverSelectedFood);
     });
   };
 
@@ -153,7 +157,7 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
     onPanResponderMove: Animated.event([null, { dx: drag.x, dy: drag.y }], { useNativeDriver: false }),
     onPanResponderRelease: (_, gesture) => handleDrop(gesture),
     onPanResponderTerminate: resetDrag,
-  }), [drag, foodLayout, targetLayout, visible, selectedFood]);
+  }), [drag, visible, selectedFood]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -205,15 +209,19 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
 
             <View style={styles.feedStageLine} />
 
-            <View style={styles.feedCatTarget} onLayout={({ nativeEvent }) => setTargetLayout(nativeEvent.layout)}>
+            <TouchableOpacity ref={targetRef} style={styles.feedCatTarget} activeOpacity={0.92} onPress={deliverSelectedFood}>
               <View style={styles.feedCatAura} />
               <Image source={KURO_IMAGE} style={styles.feedCatModalImage} resizeMode="contain" />
               <Text style={styles.feedCatTargetTitle}>Kuroneko espera su comidita</Text>
-              <Text style={styles.feedCatTargetText}>Sueltala sobre el gatito para darle el mimo.</Text>
-            </View>
+              <Text style={styles.feedCatTargetText}>Sueltala sobre el gatito para darle el mimo, o tocalo para entregarsela.</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.feedGiveButton} onPress={deliverSelectedFood} activeOpacity={0.88}>
+              <Ionicons name="heart-outline" size={14} color={colors.bg} />
+              <Text style={styles.feedGiveButtonText}>Darselo a Kuro</Text>
+            </TouchableOpacity>
 
             <Animated.View
-              onLayout={({ nativeEvent }) => setFoodLayout(nativeEvent.layout)}
               style={[
                 styles.feedDragBubble,
                 { transform: drag.getTranslateTransform() },
@@ -591,6 +599,8 @@ const createStyles = (colors) => StyleSheet.create({
   feedCatModalImage: { width: 110, height: 110, marginBottom: 8 },
   feedCatTargetTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 4 },
   feedCatTargetText: { color: colors.textMuted, fontSize: 12, lineHeight: 18, textAlign: 'center' },
+  feedGiveButton: { position: 'absolute', right: 18, top: 18, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 9, paddingHorizontal: 12, borderRadius: RADII.pill, backgroundColor: colors.lilacStrong, shadowColor: colors.lilacStrong, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 16, zIndex: 3 },
+  feedGiveButtonText: { color: colors.bg, fontSize: 12, fontWeight: '800' },
   feedDragBubble: { position: 'absolute', left: '50%', bottom: 18, marginLeft: -76, width: 152, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 12, borderRadius: 24, borderWidth: 1, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 16 },
   feedDragBubbleActive: { shadowColor: colors.pinkStrong, shadowOpacity: 0.24, shadowRadius: 22 },
   feedDragEmoji: { fontSize: 28, marginBottom: 4 },
