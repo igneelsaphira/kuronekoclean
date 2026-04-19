@@ -2,7 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Image,
+  Modal,
+  PanResponder,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,6 +26,12 @@ import { RADII } from '../theme/tokens';
 import { useAppTheme } from '../theme/useAppTheme';
 
 const KURO_IMAGE = require('../../assets/kuro-cat-cute.png');
+
+const FEED_OPTIONS = [
+  { id: 'strawberry-milk', emoji: '🍓', accent: '#f6c3da', name: 'Lechita rosa', note: 'Suave y dulce para empezar bonito.', hungerGain: 14, happinessGain: 4 },
+  { id: 'onigiri', emoji: '🍙', accent: '#d9d7f8', name: 'Onigiri tibio', note: 'Comidita calmadita para recuperar energia.', hungerGain: 18, happinessGain: 5 },
+  { id: 'pancake', emoji: '🥞', accent: '#f4d8b8', name: 'Hotcake de miel', note: 'Pequeno gustito para subir la ternura.', hungerGain: 16, happinessGain: 6 },
+];
 
 function clamp(value) {
   return Math.max(0, Math.min(100, Math.round(value)));
@@ -51,15 +60,18 @@ const HOME_PHRASES = {
 
 function RewardBubble({ styles, rewardToast, opacity }) {
   if (!rewardToast) return null;
+  const rewardChips = [
+    rewardToast.rewards?.hunger ? `+${rewardToast.rewards.hunger} hambre` : null,
+    rewardToast.rewards?.happiness ? `+${rewardToast.rewards.happiness} felicidad` : null,
+    rewardToast.rewards?.coins ? `+${rewardToast.rewards.coins} monedas` : null,
+    rewardToast.rewards?.hearts ? `+${rewardToast.rewards.hearts} corazones` : null,
+  ].filter(Boolean);
+
   return (
     <Animated.View style={[styles.rewardToast, { opacity }]}> 
       <Text style={styles.rewardToastTitle}>{rewardToast.title}</Text>
       <Text style={styles.rewardToastText}>{rewardToast.reaction}</Text>
-      <View style={styles.rewardToastRow}>
-        <Text style={styles.rewardToastChip}>+{rewardToast.rewards.coins} monedas</Text>
-        {rewardToast.rewards.hearts ? <Text style={styles.rewardToastChip}>+{rewardToast.rewards.hearts} corazones</Text> : null}
-        <Text style={styles.rewardToastChip}>+{rewardToast.rewards.happiness} felicidad</Text>
-      </View>
+      {rewardChips.length ? <View style={styles.rewardToastRow}>{rewardChips.map((chip) => <Text key={chip} style={styles.rewardToastChip}>{chip}</Text>)}</View> : null}
     </Animated.View>
   );
 }
@@ -80,6 +92,144 @@ function IllustrationCard({ styles, image, title, text, onPress, onPreview }) {
         <Text style={styles.illustrationText}>{text}</Text>
       </View>
     </TouchableOpacity>
+  );
+}
+
+function FeedModal({ visible, styles, colors, onClose, onFeed }) {
+  const [selectedFoodId, setSelectedFoodId] = useState(FEED_OPTIONS[0].id);
+  const [targetLayout, setTargetLayout] = useState(null);
+  const [foodLayout, setFoodLayout] = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const drag = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const selectedFood = FEED_OPTIONS.find((item) => item.id === selectedFoodId) || FEED_OPTIONS[0];
+
+  const resetDrag = () => {
+    Animated.spring(drag, {
+      toValue: { x: 0, y: 0 },
+      useNativeDriver: false,
+      bounciness: 10,
+      speed: 18,
+    }).start(() => setDragging(false));
+  };
+
+  useEffect(() => {
+    if (!visible) return;
+    setSelectedFoodId(FEED_OPTIONS[0].id);
+    setDragging(false);
+    drag.setValue({ x: 0, y: 0 });
+  }, [drag, visible]);
+
+  const handleDrop = (gesture) => {
+    if (!targetLayout || !foodLayout) {
+      resetDrag();
+      return;
+    }
+
+    const centerX = foodLayout.x + gesture.dx + (foodLayout.width / 2);
+    const centerY = foodLayout.y + gesture.dy + (foodLayout.height / 2);
+    const insideTarget =
+      centerX >= targetLayout.x &&
+      centerX <= targetLayout.x + targetLayout.width &&
+      centerY >= targetLayout.y &&
+      centerY <= targetLayout.y + targetLayout.height;
+
+    if (!insideTarget) {
+      resetDrag();
+      return;
+    }
+
+    Animated.sequence([
+      Animated.timing(drag, { toValue: { x: 0, y: -16 }, duration: 120, useNativeDriver: false }),
+      Animated.timing(drag, { toValue: { x: 0, y: 0 }, duration: 140, useNativeDriver: false }),
+    ]).start(() => {
+      setDragging(false);
+      onFeed(selectedFood);
+    });
+  };
+
+  const panResponder = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: () => visible,
+    onPanResponderGrant: () => setDragging(true),
+    onPanResponderMove: Animated.event([null, { dx: drag.x, dy: drag.y }], { useNativeDriver: false }),
+    onPanResponderRelease: (_, gesture) => handleDrop(gesture),
+    onPanResponderTerminate: resetDrag,
+  }), [drag, foodLayout, targetLayout, visible, selectedFood]);
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.feedModalOverlay} onPress={onClose}>
+        <Pressable style={styles.feedModalCard} onPress={(event) => event.stopPropagation()}>
+          <View style={styles.feedModalHeader}>
+            <View style={styles.feedModalHeaderCopy}>
+              <Text style={styles.feedModalEyebrow}>Momento tierno</Text>
+              <Text style={styles.feedModalTitle}>Dale una comidita a Kuroneko</Text>
+              <Text style={styles.feedModalText}>Elige una opcion y arrastrala hasta el gatito. Le subira el hambre y un poquito la felicidad.</Text>
+            </View>
+            <TouchableOpacity style={styles.feedCloseButton} onPress={onClose} activeOpacity={0.8}>
+              <Ionicons name="close" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.feedOptionsRow}>
+            {FEED_OPTIONS.map((food) => {
+              const active = food.id === selectedFoodId;
+              return (
+                <TouchableOpacity
+                  key={food.id}
+                  style={[
+                    styles.feedOptionCard,
+                    active && styles.feedOptionCardActive,
+                    active && { borderColor: food.accent, backgroundColor: `${food.accent}22` },
+                  ]}
+                  onPress={() => {
+                    setSelectedFoodId(food.id);
+                    drag.setValue({ x: 0, y: 0 });
+                  }}
+                  activeOpacity={0.86}
+                >
+                  <View style={[styles.feedOptionEmojiWrap, { backgroundColor: `${food.accent}33` }]}>
+                    <Text style={styles.feedOptionEmoji}>{food.emoji}</Text>
+                  </View>
+                  <Text style={styles.feedOptionTitle}>{food.name}</Text>
+                  <Text style={styles.feedOptionNote}>{food.note}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.feedDragStage}>
+            <View style={styles.feedInstructionPill}>
+              <Ionicons name="hand-left-outline" size={14} color={colors.pinkStrong} />
+              <Text style={styles.feedInstructionText}>Arrastra {selectedFood.name} hasta Kuroneko</Text>
+            </View>
+
+            <View style={styles.feedStageLine} />
+
+            <View style={styles.feedCatTarget} onLayout={({ nativeEvent }) => setTargetLayout(nativeEvent.layout)}>
+              <View style={styles.feedCatAura} />
+              <Image source={KURO_IMAGE} style={styles.feedCatModalImage} resizeMode="contain" />
+              <Text style={styles.feedCatTargetTitle}>Kuroneko espera su comidita</Text>
+              <Text style={styles.feedCatTargetText}>Sueltala sobre el gatito para darle el mimo.</Text>
+            </View>
+
+            <Animated.View
+              onLayout={({ nativeEvent }) => setFoodLayout(nativeEvent.layout)}
+              style={[
+                styles.feedDragBubble,
+                { transform: drag.getTranslateTransform() },
+                dragging && styles.feedDragBubbleActive,
+                { borderColor: selectedFood.accent, backgroundColor: `${selectedFood.accent}2a` },
+              ]}
+              {...panResponder.panHandlers}
+            >
+              <Text style={styles.feedDragEmoji}>{selectedFood.emoji}</Text>
+              <Text style={styles.feedDragTitle}>{selectedFood.name}</Text>
+              <Text style={styles.feedDragHint}>Arrastrame hacia Kuro</Text>
+            </Animated.View>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -118,6 +268,7 @@ export default function GatitoScreen() {
   const [lastGameKey, setLastGameKey] = useState(null);
   const [rewardToast, setRewardToast] = useState(null);
   const [previewItem, setPreviewItem] = useState(null);
+  const [feedModalVisible, setFeedModalVisible] = useState(false);
   const bubbleOpacity = useRef(new Animated.Value(0)).current;
   const rewardOpacity = useRef(new Animated.Value(0)).current;
 
@@ -160,13 +311,29 @@ export default function GatitoScreen() {
     setRewardToast(summary);
   };
 
+  const handleFeed = (food) => {
+    const result = alimentar(food);
+    setFeedModalVisible(false);
+    setFraseVisible(result.reaction);
+    bubbleOpacity.setValue(0);
+    Animated.timing(bubbleOpacity, { toValue: 1, duration: 380, useNativeDriver: true }).start();
+    setRewardToast({
+      title: result.title,
+      reaction: result.reaction,
+      rewards: {
+        hunger: result.hungerGain,
+        happiness: result.happinessGain,
+      },
+    });
+  };
+
   const actionCards = [
     {
       key: 'feed',
       image: APP_ILLUSTRATIONS.feedAction,
       title: 'Alimentar',
       text: 'Un mimo pequeño para subir su energia.',
-      onPress: alimentar,
+      onPress: () => setFeedModalVisible(true),
     },
     {
       key: 'play',
@@ -298,6 +465,7 @@ export default function GatitoScreen() {
 
       <RewardBubble styles={styles} rewardToast={rewardToast} opacity={rewardOpacity} />
       <ImagePreviewModal visible={Boolean(previewItem)} source={previewItem?.source} title={previewItem?.title} colors={colors} onClose={() => setPreviewItem(null)} />
+      <FeedModal visible={feedModalVisible} styles={styles} colors={colors} onClose={() => setFeedModalVisible(false)} onFeed={handleFeed} />
       <MiniGameModal visible={Boolean(activeGameKey)} gameKey={activeGameKey} onClose={() => setActiveGameKey(null)} onReward={handleMiniGameReward} />
     </View>
   );
@@ -399,5 +567,34 @@ const createStyles = (colors) => StyleSheet.create({
   rewardToastText: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginBottom: 10 },
   rewardToastRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   rewardToastChip: { color: colors.textSoft, fontSize: 11, fontWeight: '700', paddingVertical: 6, paddingHorizontal: 8, borderRadius: RADII.pill, backgroundColor: colors.bgCardAlt },
+  feedModalOverlay: { flex: 1, backgroundColor: 'rgba(12, 8, 18, 0.56)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  feedModalCard: { width: '100%', maxWidth: 680, borderRadius: RADII.xl, backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.borderStrong, padding: 18, shadowColor: colors.pinkStrong, shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.2, shadowRadius: 28 },
+  feedModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14 },
+  feedModalHeaderCopy: { flex: 1 },
+  feedModalEyebrow: { color: colors.pinkStrong, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 },
+  feedModalTitle: { color: colors.text, fontSize: 22, fontWeight: '800', marginBottom: 8 },
+  feedModalText: { color: colors.textMuted, fontSize: 13, lineHeight: 20 },
+  feedCloseButton: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgCardAlt, borderWidth: 1, borderColor: colors.border },
+  feedOptionsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  feedOptionCard: { flex: 1, padding: 12, borderRadius: RADII.lg, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border },
+  feedOptionCardActive: { transform: [{ translateY: -2 }], shadowColor: colors.pinkStrong, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.12, shadowRadius: 16 },
+  feedOptionEmojiWrap: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  feedOptionEmoji: { fontSize: 22 },
+  feedOptionTitle: { color: colors.text, fontSize: 14, fontWeight: '700', marginBottom: 4 },
+  feedOptionNote: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  feedDragStage: { minHeight: 320, borderRadius: RADII.xl, backgroundColor: colors.bgGlassStrong, borderWidth: 1, borderColor: colors.border, padding: 16, position: 'relative', overflow: 'hidden' },
+  feedInstructionPill: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 14, borderRadius: RADII.pill, backgroundColor: `${colors.pink}18`, borderWidth: 1, borderColor: `${colors.pinkStrong}48`, marginBottom: 14, zIndex: 2 },
+  feedInstructionText: { color: colors.textSoft, fontSize: 12, fontWeight: '700' },
+  feedStageLine: { position: 'absolute', left: '50%', marginLeft: -1, top: 72, bottom: 90, width: 2, backgroundColor: `${colors.borderStrong}` },
+  feedCatTarget: { alignSelf: 'center', width: '74%', minHeight: 176, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 14, borderRadius: 28, backgroundColor: `${colors.lilac}12`, borderWidth: 1, borderColor: `${colors.lilacStrong}40`, alignItems: 'center', justifyContent: 'center' },
+  feedCatAura: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: `${colors.pink}16`, top: 12 },
+  feedCatModalImage: { width: 110, height: 110, marginBottom: 8 },
+  feedCatTargetTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 4 },
+  feedCatTargetText: { color: colors.textMuted, fontSize: 12, lineHeight: 18, textAlign: 'center' },
+  feedDragBubble: { position: 'absolute', left: '50%', bottom: 18, marginLeft: -76, width: 152, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 12, borderRadius: 24, borderWidth: 1, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 16 },
+  feedDragBubbleActive: { shadowColor: colors.pinkStrong, shadowOpacity: 0.24, shadowRadius: 22 },
+  feedDragEmoji: { fontSize: 28, marginBottom: 4 },
+  feedDragTitle: { color: colors.text, fontSize: 13, fontWeight: '800', marginBottom: 2, textAlign: 'center' },
+  feedDragHint: { color: colors.textMuted, fontSize: 11, textAlign: 'center' },
 });
 

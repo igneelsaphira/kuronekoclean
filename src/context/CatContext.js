@@ -66,6 +66,10 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function pickRandom(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
 function mergeTasks(defaults, savedTasks) {
   const savedMap = new Map((savedTasks || []).map((task) => [task.id, task]));
   return defaults.map((task) => ({
@@ -180,6 +184,20 @@ function buildPersistedPayload({
     minigameStats,
   };
 }
+
+const REGULAR_FEED_REACTIONS = [
+  'Gracias por cuidarme asi de lindo. Quede con la pancita y el corazon calentitos.',
+  'Mmm... esto estaba riquisimo. Contigo todo se siente mas tierno.',
+  'Me encanta cuando me alimentas con tanto amorcito. Ya me siento mejor.',
+  'Que ricooo. Ahora quiero quedarme contigo mientras haces una cosita suave.',
+];
+
+const SPECIAL_FEED_REACTIONS = [
+  'Mami preciosa, esto estaba perfecto. Me hiciste sentir la gatita mas amada del mundo.',
+  'Te juro que casi ronronee en forma de corazon. Gracias por este mimo tan dulce.',
+  'Tu cuidado me derrite completita. Vamos juntas, tu y yo podemos con el dia.',
+  'Aaaa, que ternura. Me dieron ganas de apretarte la mano y acompanar cada pasito tuyo.',
+];
 
 function isIncomingStateNewer(incoming, current) {
   const incomingTime = Date.parse(incoming?.updatedAt || 0);
@@ -426,7 +444,24 @@ export function CatProvider({ children }) {
     )));
   };
 
-  const alimentar = () => setHambre((prev) => clamp(prev + 18, 0, 100));
+  const alimentar = (food = null) => {
+    const hungerGain = clamp(food?.hungerGain ?? 18, 6, 30);
+    const happinessGain = clamp(food?.happinessGain ?? 4, 1, 12);
+    const special = Math.random() < 0.32;
+    const reaction = special ? pickRandom(SPECIAL_FEED_REACTIONS) : pickRandom(REGULAR_FEED_REACTIONS);
+    const foodName = food?.name || 'tu comidita';
+
+    setHambre((prev) => clamp(prev + hungerGain, 0, 100));
+    setFelicidad((prev) => clamp(prev + happinessGain, 0, 100));
+
+    return {
+      hungerGain,
+      happinessGain,
+      special,
+      reaction,
+      title: special ? `Kuroneko amo ${foodName}` : `Kuroneko comio ${foodName}`,
+    };
+  };
   const jugar = () => setFelicidad((prev) => clamp(prev + 12, 0, 100));
 
   const registerMiniGameReward = ({ gameKey = null, coins = 0, hearts = 0, happiness = 0 }) => {
