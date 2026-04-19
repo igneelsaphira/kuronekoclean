@@ -177,10 +177,6 @@ export default function GatitoScreen() {
     },
   ];
 
-  const cozyScenes = [
-    { key: 'pieza', image: APP_ILLUSTRATIONS.studyScene, title: 'Tu pieza', text: 'La pieza queda aqui al inicio como referencia principal mientras despues cambiamos el gatito.' },
-  ];
-
   return (
     <View style={styles.screen}>
       <ScrollView
@@ -259,21 +255,6 @@ export default function GatitoScreen() {
 
         <View style={styles.illustrationGrid}>
           {actionCards.map((card) => <IllustrationCard key={card.key} styles={styles} image={card.image} title={card.title} text={card.text} onPress={card.onPress} onPreview={(source, title) => setPreviewItem({ source, title })} />)}
-        </View>
-
-        <View style={styles.cozyScenesCard}>
-          <View style={styles.focusHeader}><View><Text style={styles.sectionTitle}>Casita ordenada</Text><Text style={styles.focusSubtitle}>Volvieron algunos dibujos antiguos como placeholders lindos y fáciles de reemplazar.</Text></View></View>
-          <View style={styles.cozyScenesGrid}>
-            {cozyScenes.map((scene) => (
-              <View key={scene.key} style={styles.cozySceneTile}>
-                <TouchableOpacity style={styles.cozySceneImageWrap} activeOpacity={0.9} delayLongPress={2000} onLongPress={() => setPreviewItem({ source: scene.image, title: scene.title })}>
-                  <Image source={scene.image} style={styles.cozySceneImage} resizeMode="contain" />
-                </TouchableOpacity>
-                <Text style={styles.cozySceneTitle}>{scene.title}</Text>
-                <Text style={styles.cozySceneText}>{scene.text}</Text>
-              </View>
-            ))}
-          </View>
         </View>
 
         <View style={styles.focusCard}>
@@ -377,13 +358,6 @@ const createStyles = (colors) => StyleSheet.create({
   illustrationCopy: { flex: 1 },
   illustrationTitle: { color: colors.text, fontSize: 14, fontWeight: '700', marginBottom: 4 },
   illustrationText: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
-  cozyScenesCard: { padding: 18, borderRadius: RADII.lg, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border, marginBottom: 18, shadowColor: colors.lilacStrong, shadowOffset: { width: 0, height: 14 }, shadowOpacity: 0.08, shadowRadius: 18 },
-  cozyScenesGrid: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
-  cozySceneTile: { flex: 1, minWidth: 180, padding: 12, borderRadius: RADII.md, backgroundColor: colors.bgGlassStrong, borderWidth: 1, borderColor: colors.border, shadowColor: colors.pinkStrong, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.08, shadowRadius: 14 },
-  cozySceneImageWrap: { height: 92, borderRadius: RADII.md, backgroundColor: `${colors.blue}12`, alignItems: 'center', justifyContent: 'center', marginBottom: 10, borderWidth: 1, borderColor: `${colors.blueStrong}26` },
-  cozySceneImage: { width: '80%', height: '80%' },
-  cozySceneTitle: { color: colors.text, fontSize: 13, fontWeight: '700', marginBottom: 4 },
-  cozySceneText: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
   focusCard: { padding: 18, borderRadius: RADII.lg, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border, marginBottom: 18, shadowColor: colors.lilacStrong, shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.08, shadowRadius: 16 },
   focusHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 },
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 8 },
