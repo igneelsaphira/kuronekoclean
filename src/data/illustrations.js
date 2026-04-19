@@ -5,5 +5,5 @@ export const APP_ILLUSTRATIONS = {
   tabSemanal: require('../../assets/tab-semanal.optimized.png'),
   tabMensual: require('../../assets/tab-mensual.optimized.png'),
   tabAnual: require('../../assets/tab-anual.optimized.png'),
-  studyScene: require('../../assets/study-bg.optimized.png'),
+  studyScene: require('../../assets/peaceful-study-corner.jpg'),
 };
