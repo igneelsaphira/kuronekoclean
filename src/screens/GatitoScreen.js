@@ -213,7 +213,6 @@ export default function GatitoScreen() {
         <View style={[styles.topGrid, isWideLayout && styles.topGridWide]}>
           <View style={styles.sceneCard}>
             <StudyCornerRoom themeKey={equippedTheme} purchasedItems={purchasedItems} />
-            <View style={styles.sceneTint} />
 
             <View style={styles.sceneTopRow}>
               <View style={[styles.sceneChip, { borderColor: `${mood.accent}66` }]}>
@@ -340,19 +339,18 @@ const createStyles = (colors) => StyleSheet.create({
   ritualButtonText: { color: colors.textSoft, fontSize: 12, fontWeight: '700' },
   topGrid: { width: '100%' },
   topGridWide: { flexDirection: 'row', gap: 16, alignItems: 'stretch' },
-  sceneCard: { flex: 1.08, height: 320, borderRadius: RADII.xl, overflow: 'hidden', borderWidth: 1, borderColor: colors.borderStrong, marginBottom: 18, position: 'relative', backgroundColor: colors.bgCard, shadowColor: colors.lilacStrong, shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.18, shadowRadius: 28 },
-  sceneTint: { ...StyleSheet.absoluteFillObject, backgroundColor: themeTint(colors) },
+  sceneCard: { flex: 1.08, height: 336, borderRadius: RADII.xl, overflow: 'hidden', borderWidth: 1, borderColor: colors.border, marginBottom: 18, position: 'relative', backgroundColor: colors.bgGlassStrong, shadowColor: colors.lilacStrong, shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.12, shadowRadius: 24 },
   sceneTopRow: { position: 'absolute', top: 16, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sceneChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: colors.bgGlassStrong, borderRadius: RADII.pill, borderWidth: 1 },
+  sceneChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: RADII.pill, borderWidth: 1 },
   sceneChipDot: { width: 8, height: 8, borderRadius: 4 },
-  sceneChipText: { color: colors.text, fontSize: 11, fontWeight: '700' },
-  sceneChipAlt: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: RADII.pill, backgroundColor: colors.bgGlassStrong, borderWidth: 1, borderColor: colors.border },
+  sceneChipText: { color: colors.ink, fontSize: 11, fontWeight: '700' },
+  sceneChipAlt: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: RADII.pill, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
   sceneChipAltText: { color: colors.textSoft, fontSize: 11, fontWeight: '700' },
-  catStage: { position: 'absolute', left: 0, right: 0, bottom: 24, alignItems: 'center' },
-  bubble: { maxWidth: 260, marginBottom: 10, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16, backgroundColor: `${colors.pink}24`, borderWidth: 1, borderColor: `${colors.pinkStrong}58` },
-  bubbleText: { color: colors.text, fontSize: 13, lineHeight: 18, textAlign: 'center', fontWeight: '600' },
-  catImage: { width: 148, height: 148 },
-  catName: { color: colors.ink, fontSize: 16, fontWeight: '700', marginTop: 6 },
+  catStage: { position: 'absolute', left: 0, right: 0, bottom: 12, alignItems: 'center' },
+  bubble: { maxWidth: 260, marginBottom: 4, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  bubbleText: { color: colors.ink, fontSize: 13, lineHeight: 18, textAlign: 'center', fontWeight: '600' },
+  catImage: { width: 188, height: 188 },
+  catName: { color: colors.ink, fontSize: 16, fontWeight: '700', marginTop: -10 },
   sideColumn: { flex: 0.92, minWidth: 0 },
   statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 18 },
   statCard: { flex: 1, minHeight: 126, padding: 16, borderRadius: RADII.lg, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border, shadowColor: colors.lilacStrong, shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.08, shadowRadius: 18 },
@@ -430,8 +428,4 @@ const createStyles = (colors) => StyleSheet.create({
   rewardToastRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   rewardToastChip: { color: colors.textSoft, fontSize: 11, fontWeight: '700', paddingVertical: 6, paddingHorizontal: 8, borderRadius: RADII.pill, backgroundColor: colors.bgCardAlt },
 });
-
-function themeTint(colors) {
-  return colors.bg === '#f4efe6' ? 'rgba(255, 249, 241, 0.08)' : 'rgba(242, 187, 224, 0.12)';
-}
 
