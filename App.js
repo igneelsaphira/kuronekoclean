@@ -47,7 +47,6 @@ function DesktopCompanionPanel({ styles, colors }) {
     sugerenciasHoy,
     monedas,
     corazones,
-    equippedTheme,
   } = useCat();
 
   return (
@@ -71,7 +70,6 @@ function DesktopCompanionPanel({ styles, colors }) {
         <View style={styles.desktopWalletRow}>
           <View style={styles.desktopWalletChip}><Ionicons name="logo-bitcoin" size={14} color={colors.gold} /><Text style={styles.desktopWalletText}>{monedas}</Text></View>
           <View style={styles.desktopWalletChip}><Ionicons name="heart" size={14} color={colors.pinkStrong} /><Text style={styles.desktopWalletText}>{corazones}</Text></View>
-          <View style={styles.desktopWalletChip}><Ionicons name="color-palette-outline" size={14} color={colors.mintStrong} /><Text style={styles.desktopWalletText}>{equippedTheme}</Text></View>
         </View>
       </View>
 
