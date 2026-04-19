@@ -100,7 +100,6 @@ function IllustrationCard({ styles, image, title, text, onPress, onPreview }) {
 function FeedModal({ visible, styles, colors, onClose, onFeed }) {
   const [selectedFoodId, setSelectedFoodId] = useState(FEED_OPTIONS[0].id);
   const [dragging, setDragging] = useState(false);
-  const targetRef = useRef(null);
   const drag = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const selectedFood = FEED_OPTIONS.find((item) => item.id === selectedFoodId) || FEED_OPTIONS[0];
 
@@ -127,28 +126,18 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
   };
 
   const handleDrop = (gesture) => {
-    if (!targetRef.current?.measureInWindow) {
+    const draggedHighEnough = gesture.dy <= -120;
+    const closeToCenter = Math.abs(gesture.dx) <= 140;
+
+    if (!draggedHighEnough || !closeToCenter) {
       resetDrag();
       return;
     }
 
-    targetRef.current.measureInWindow((x, y, width, height) => {
-      const insideTarget =
-        gesture.moveX >= x &&
-        gesture.moveX <= x + width &&
-        gesture.moveY >= y &&
-        gesture.moveY <= y + height;
-
-      if (!insideTarget) {
-        resetDrag();
-        return;
-      }
-
-      Animated.sequence([
-        Animated.timing(drag, { toValue: { x: 0, y: -16 }, duration: 120, useNativeDriver: false }),
-        Animated.timing(drag, { toValue: { x: 0, y: 0 }, duration: 140, useNativeDriver: false }),
-      ]).start(deliverSelectedFood);
-    });
+    Animated.sequence([
+      Animated.timing(drag, { toValue: { x: 0, y: -16 }, duration: 120, useNativeDriver: false }),
+      Animated.timing(drag, { toValue: { x: 0, y: 0 }, duration: 140, useNativeDriver: false }),
+    ]).start(deliverSelectedFood);
   };
 
   const panResponder = useMemo(() => PanResponder.create({
@@ -209,17 +198,12 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
 
             <View style={styles.feedStageLine} />
 
-            <TouchableOpacity ref={targetRef} style={styles.feedCatTarget} activeOpacity={0.92} onPress={deliverSelectedFood}>
+            <View style={styles.feedCatTarget}>
               <View style={styles.feedCatAura} />
               <Image source={KURO_IMAGE} style={styles.feedCatModalImage} resizeMode="contain" />
               <Text style={styles.feedCatTargetTitle}>Kuroneko espera su comidita</Text>
-              <Text style={styles.feedCatTargetText}>Sueltala sobre el gatito para darle el mimo, o tocalo para entregarsela.</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.feedGiveButton} onPress={deliverSelectedFood} activeOpacity={0.88}>
-              <Ionicons name="heart-outline" size={14} color={colors.bg} />
-              <Text style={styles.feedGiveButtonText}>Darselo a Kuro</Text>
-            </TouchableOpacity>
+              <Text style={styles.feedCatTargetText}>Sueltala sobre el gatito para darle el mimo.</Text>
+            </View>
 
             <Animated.View
               style={[
@@ -599,8 +583,6 @@ const createStyles = (colors) => StyleSheet.create({
   feedCatModalImage: { width: 110, height: 110, marginBottom: 8 },
   feedCatTargetTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 4 },
   feedCatTargetText: { color: colors.textMuted, fontSize: 12, lineHeight: 18, textAlign: 'center' },
-  feedGiveButton: { position: 'absolute', right: 18, top: 18, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 9, paddingHorizontal: 12, borderRadius: RADII.pill, backgroundColor: colors.lilacStrong, shadowColor: colors.lilacStrong, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 16, zIndex: 3 },
-  feedGiveButtonText: { color: colors.bg, fontSize: 12, fontWeight: '800' },
   feedDragBubble: { position: 'absolute', left: '50%', bottom: 18, marginLeft: -76, width: 152, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 12, borderRadius: 24, borderWidth: 1, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 16 },
   feedDragBubbleActive: { shadowColor: colors.pinkStrong, shadowOpacity: 0.24, shadowRadius: 22 },
   feedDragEmoji: { fontSize: 28, marginBottom: 4 },
