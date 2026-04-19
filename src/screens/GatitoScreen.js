@@ -22,7 +22,7 @@ import { ACTIVE_MINIGAME_KEYS, MiniGameModal } from '../minigames/MiniGameModal'
 import { RADII } from '../theme/tokens';
 import { useAppTheme } from '../theme/useAppTheme';
 
-const KURO_IMAGE = require('../../assets/kuro-cat.optimized.png');
+const KURO_IMAGE = require('../../assets/kuro-cat-cute.png');
 
 function clamp(value) {
   return Math.max(0, Math.min(100, Math.round(value)));
@@ -227,7 +227,6 @@ export default function GatitoScreen() {
                 <Text style={styles.bubbleText}>{fraseVisible}</Text>
               </Animated.View>
               <Image source={KURO_IMAGE} style={styles.catImage} resizeMode="contain" />
-              <Text style={styles.catName}>Kuroneko</Text>
             </View>
           </View>
 
@@ -349,8 +348,7 @@ const createStyles = (colors) => StyleSheet.create({
   catStage: { position: 'absolute', left: 0, right: 0, bottom: 12, alignItems: 'center' },
   bubble: { maxWidth: 260, marginBottom: 4, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
   bubbleText: { color: colors.ink, fontSize: 13, lineHeight: 18, textAlign: 'center', fontWeight: '600' },
-  catImage: { width: 188, height: 188 },
-  catName: { color: colors.ink, fontSize: 16, fontWeight: '700', marginTop: -10 },
+  catImage: { width: 196, height: 196 },
   sideColumn: { flex: 0.92, minWidth: 0 },
   statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 18 },
   statCard: { flex: 1, minHeight: 126, padding: 16, borderRadius: RADII.lg, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border, shadowColor: colors.lilacStrong, shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.08, shadowRadius: 18 },
