@@ -102,6 +102,7 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
   const [dragging, setDragging] = useState(false);
   const drag = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const webDragStart = useRef(null);
+  const dragBubbleRef = useRef(null);
   const selectedFood = FEED_OPTIONS.find((item) => item.id === selectedFoodId) || FEED_OPTIONS[0];
 
   const resetDrag = () => {
@@ -144,16 +145,17 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return undefined;
-
-    const handleMouseMove = (event) => {
+    const handlePointerMove = (event) => {
       if (!webDragStart.current) return;
+      if (webDragStart.current.pointerId != null && event.pointerId !== webDragStart.current.pointerId) return;
       const dx = event.clientX - webDragStart.current.x;
       const dy = event.clientY - webDragStart.current.y;
       drag.setValue({ x: dx, y: dy });
     };
 
-    const handleMouseUp = (event) => {
+    const handlePointerUp = (event) => {
       if (!webDragStart.current) return;
+      if (webDragStart.current.pointerId != null && event.pointerId !== webDragStart.current.pointerId) return;
       const gesture = {
         dx: event.clientX - webDragStart.current.x,
         dy: event.clientY - webDragStart.current.y,
@@ -162,42 +164,14 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
       handleDrop(gesture);
     };
 
-    const handleTouchMove = (event) => {
-      if (!webDragStart.current?.pointerType || webDragStart.current.pointerType !== 'touch') return;
-      const touch = event.touches?.[0];
-      if (!touch) return;
-      const dx = touch.clientX - webDragStart.current.x;
-      const dy = touch.clientY - webDragStart.current.y;
-      drag.setValue({ x: dx, y: dy });
-      event.preventDefault();
-    };
-
-    const handleTouchEnd = (event) => {
-      if (!webDragStart.current?.pointerType || webDragStart.current.pointerType !== 'touch') return;
-      const touch = event.changedTouches?.[0];
-      const endX = touch?.clientX ?? webDragStart.current.x;
-      const endY = touch?.clientY ?? webDragStart.current.y;
-      const gesture = {
-        dx: endX - webDragStart.current.x,
-        dy: endY - webDragStart.current.y,
-      };
-      webDragStart.current = null;
-      handleDrop(gesture);
-      event.preventDefault();
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd, { passive: false });
-    document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
+    document.addEventListener('pointercancel', handlePointerUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-      document.removeEventListener('touchcancel', handleTouchEnd);
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+      document.removeEventListener('pointercancel', handlePointerUp);
     };
   }, [drag, visible, selectedFood]);
 
@@ -214,18 +188,16 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
   }), [drag, visible, selectedFood]);
 
   const webDragHandlers = Platform.OS === 'web' ? {
-    onMouseDown: (event) => {
-      webDragStart.current = { x: event.clientX, y: event.clientY, pointerType: 'mouse' };
+    onPointerDown: (event) => {
+      const nativeEvent = event.nativeEvent || event;
+      webDragStart.current = {
+        x: nativeEvent.clientX,
+        y: nativeEvent.clientY,
+        pointerId: nativeEvent.pointerId,
+      };
       setDragging(true);
       drag.setValue({ x: 0, y: 0 });
-    },
-    onTouchStart: (event) => {
-      const touch = event.touches?.[0];
-      if (!touch) return;
-      webDragStart.current = { x: touch.clientX, y: touch.clientY, pointerType: 'touch' };
-      setDragging(true);
-      drag.setValue({ x: 0, y: 0 });
-      event.preventDefault();
+      dragBubbleRef.current?.setPointerCapture?.(nativeEvent.pointerId);
     },
   } : {};
 
@@ -287,6 +259,7 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
             </View>
 
             <Animated.View
+              ref={dragBubbleRef}
               style={[
                 styles.feedDragBubble,
                 Platform.OS === 'web' && styles.feedDragBubbleWeb,
