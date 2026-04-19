@@ -162,12 +162,42 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
       handleDrop(gesture);
     };
 
+    const handleTouchMove = (event) => {
+      if (!webDragStart.current?.pointerType || webDragStart.current.pointerType !== 'touch') return;
+      const touch = event.touches?.[0];
+      if (!touch) return;
+      const dx = touch.clientX - webDragStart.current.x;
+      const dy = touch.clientY - webDragStart.current.y;
+      drag.setValue({ x: dx, y: dy });
+      event.preventDefault();
+    };
+
+    const handleTouchEnd = (event) => {
+      if (!webDragStart.current?.pointerType || webDragStart.current.pointerType !== 'touch') return;
+      const touch = event.changedTouches?.[0];
+      const endX = touch?.clientX ?? webDragStart.current.x;
+      const endY = touch?.clientY ?? webDragStart.current.y;
+      const gesture = {
+        dx: endX - webDragStart.current.x,
+        dy: endY - webDragStart.current.y,
+      };
+      webDragStart.current = null;
+      handleDrop(gesture);
+      event.preventDefault();
+    };
+
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd, { passive: false });
+    document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+      document.removeEventListener('touchcancel', handleTouchEnd);
     };
   }, [drag, visible, selectedFood]);
 
@@ -185,9 +215,17 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
 
   const webDragHandlers = Platform.OS === 'web' ? {
     onMouseDown: (event) => {
-      webDragStart.current = { x: event.clientX, y: event.clientY };
+      webDragStart.current = { x: event.clientX, y: event.clientY, pointerType: 'mouse' };
       setDragging(true);
       drag.setValue({ x: 0, y: 0 });
+    },
+    onTouchStart: (event) => {
+      const touch = event.touches?.[0];
+      if (!touch) return;
+      webDragStart.current = { x: touch.clientX, y: touch.clientY, pointerType: 'touch' };
+      setDragging(true);
+      drag.setValue({ x: 0, y: 0 });
+      event.preventDefault();
     },
   } : {};
 
@@ -251,6 +289,7 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
             <Animated.View
               style={[
                 styles.feedDragBubble,
+                Platform.OS === 'web' && styles.feedDragBubbleWeb,
                 { transform: drag.getTranslateTransform() },
                 dragging && styles.feedDragBubbleActive,
                 { borderColor: selectedFood.accent, backgroundColor: `${selectedFood.accent}2a` },
@@ -628,6 +667,7 @@ const createStyles = (colors) => StyleSheet.create({
   feedCatTargetTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 4 },
   feedCatTargetText: { color: colors.textMuted, fontSize: 12, lineHeight: 18, textAlign: 'center' },
   feedDragBubble: { position: 'absolute', left: '50%', bottom: 18, marginLeft: -76, width: 152, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 12, borderRadius: 24, borderWidth: 1, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 16 },
+  feedDragBubbleWeb: { cursor: 'grab', touchAction: 'none', userSelect: 'none' },
   feedDragBubbleActive: { shadowColor: colors.pinkStrong, shadowOpacity: 0.24, shadowRadius: 22 },
   feedDragEmoji: { fontSize: 28, marginBottom: 4 },
   feedDragTitle: { color: colors.text, fontSize: 13, fontWeight: '800', marginBottom: 2, textAlign: 'center' },
