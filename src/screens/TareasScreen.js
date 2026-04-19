@@ -5,7 +5,6 @@ import { useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import { useCat } from '../context/CatContext';
-import { APP_ILLUSTRATIONS } from '../data/illustrations';
 import { SHOP_ITEMS } from '../data/shopItems';
 import { TASK_ART_OPTIONS, getTaskIllustration } from '../data/taskIllustrations';
 import { RADII } from '../theme/tokens';
@@ -79,10 +78,10 @@ export default function TareasScreen() {
   } = useCat();
 
   const TAB_OPTIONS = useMemo(() => ([
-    { key: 'diaria', label: 'Hoy', accent: colors.mintStrong, image: APP_ILLUSTRATIONS.tabDiaria },
-    { key: 'semanal', label: 'Semana', accent: colors.lilacStrong, image: APP_ILLUSTRATIONS.tabSemanal },
-    { key: 'mensual', label: 'Mes', accent: colors.pinkStrong, image: APP_ILLUSTRATIONS.tabMensual },
-    { key: 'anual', label: 'Profundo', accent: colors.gold, image: APP_ILLUSTRATIONS.tabAnual },
+    { key: 'diaria', label: 'Urgente', accent: colors.mintStrong },
+    { key: 'semanal', label: 'Esta semana', accent: colors.lilacStrong },
+    { key: 'mensual', label: 'Toma tiempo', accent: colors.pinkStrong },
+    { key: 'anual', label: 'Con calma', accent: colors.gold },
   ]), [colors.gold, colors.lilacStrong, colors.mintStrong, colors.pinkStrong]);
 
   const [pestaña, setPestaña] = useState('diaria');
@@ -218,9 +217,6 @@ export default function TareasScreen() {
                 onPress={() => setPestaña(tab.key)}
                 activeOpacity={0.82}
               >
-                <View style={styles.tabArtWrap}>
-                  <Image source={tab.image} style={styles.tabArt} resizeMode="contain" />
-                </View>
                 <Text style={[styles.tabButtonText, isActive && { color: colors.text }]}>{tab.label}</Text>
                 <Text style={[styles.tabButtonCount, isActive && { color: tab.accent }]}>{resumenRutinas[tab.key].hechas}/{resumenRutinas[tab.key].total}</Text>
               </TouchableOpacity>
@@ -406,31 +402,15 @@ const createStyles = (colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  tabArtWrap: {
-    width: '100%',
-    height: 64,
-    borderRadius: RADII.md,
-    backgroundColor: colors.bgGlassStrong,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    marginBottom: 10,
-  },
-  tabArt: {
-    width: '86%',
-    height: '86%',
-  },
   tabButtonText: {
-    color: colors.textMuted,
-    fontSize: 13,
+    color: colors.text,
+    fontSize: 16,
     fontWeight: '700',
     marginBottom: 6,
   },
   tabButtonCount: {
     color: colors.textFaint,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
   },
   filterRow: {
