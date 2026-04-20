@@ -147,6 +147,7 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return undefined;
     const handlePointerMove = (event) => {
       if (!webDragStart.current) return;
+      if (webDragStart.current.kind !== 'pointer') return;
       if (webDragStart.current.pointerId != null && event.pointerId !== webDragStart.current.pointerId) return;
       const dx = event.clientX - webDragStart.current.x;
       const dy = event.clientY - webDragStart.current.y;
@@ -155,6 +156,7 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
 
     const handlePointerUp = (event) => {
       if (!webDragStart.current) return;
+      if (webDragStart.current.kind !== 'pointer') return;
       if (webDragStart.current.pointerId != null && event.pointerId !== webDragStart.current.pointerId) return;
       const gesture = {
         dx: event.clientX - webDragStart.current.x,
@@ -190,14 +192,52 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
   const webDragHandlers = Platform.OS === 'web' ? {
     onPointerDown: (event) => {
       const nativeEvent = event.nativeEvent || event;
+      if (nativeEvent.pointerType === 'touch') return;
       webDragStart.current = {
         x: nativeEvent.clientX,
         y: nativeEvent.clientY,
         pointerId: nativeEvent.pointerId,
+        kind: 'pointer',
       };
       setDragging(true);
       drag.setValue({ x: 0, y: 0 });
       dragBubbleRef.current?.setPointerCapture?.(nativeEvent.pointerId);
+    },
+    onTouchStart: (event) => {
+      const nativeEvent = event.nativeEvent || event;
+      const touch = nativeEvent.touches?.[0];
+      if (!touch) return;
+      webDragStart.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+        kind: 'touch',
+      };
+      setDragging(true);
+      drag.setValue({ x: 0, y: 0 });
+    },
+    onTouchMove: (event) => {
+      const nativeEvent = event.nativeEvent || event;
+      if (!webDragStart.current || webDragStart.current.kind !== 'touch') return;
+      const touch = nativeEvent.touches?.[0];
+      if (!touch) return;
+      const dx = touch.clientX - webDragStart.current.x;
+      const dy = touch.clientY - webDragStart.current.y;
+      drag.setValue({ x: dx, y: dy });
+      event.preventDefault?.();
+    },
+    onTouchEnd: (event) => {
+      const nativeEvent = event.nativeEvent || event;
+      if (!webDragStart.current || webDragStart.current.kind !== 'touch') return;
+      const touch = nativeEvent.changedTouches?.[0];
+      const endX = touch?.clientX ?? webDragStart.current.x;
+      const endY = touch?.clientY ?? webDragStart.current.y;
+      const gesture = {
+        dx: endX - webDragStart.current.x,
+        dy: endY - webDragStart.current.y,
+      };
+      webDragStart.current = null;
+      handleDrop(gesture);
+      event.preventDefault?.();
     },
   } : {};
 
