@@ -129,8 +129,17 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
   };
 
   const handleDrop = (gesture) => {
+    const isTapFeed = Math.abs(gesture.dx) <= 14 && Math.abs(gesture.dy) <= 14;
     const draggedHighEnough = gesture.dy <= -120;
     const closeToCenter = Math.abs(gesture.dx) <= 140;
+
+    if (isTapFeed) {
+      Animated.sequence([
+        Animated.timing(drag, { toValue: { x: 0, y: -10 }, duration: 90, useNativeDriver: false }),
+        Animated.timing(drag, { toValue: { x: 0, y: 0 }, duration: 110, useNativeDriver: false }),
+      ]).start(deliverSelectedFood);
+      return;
+    }
 
     if (!draggedHighEnough || !closeToCenter) {
       resetDrag();
