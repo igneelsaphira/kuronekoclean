@@ -307,6 +307,11 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
               <Text style={styles.feedCatTargetText}>Sueltala sobre el gatito para darle el mimo.</Text>
             </View>
 
+            <TouchableOpacity style={styles.feedFallbackButton} onPress={deliverSelectedFood} activeOpacity={0.88}>
+              <Ionicons name="restaurant-outline" size={15} color={colors.bg} />
+              <Text style={styles.feedFallbackButtonText}>Dar comidita igual</Text>
+            </TouchableOpacity>
+
             <Animated.View
               ref={dragBubbleRef}
               style={[
@@ -688,6 +693,8 @@ const createStyles = (colors) => StyleSheet.create({
   feedCatModalImage: { width: 110, height: 110, marginBottom: 8 },
   feedCatTargetTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 4 },
   feedCatTargetText: { color: colors.textMuted, fontSize: 12, lineHeight: 18, textAlign: 'center' },
+  feedFallbackButton: { alignSelf: 'center', marginTop: 14, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 14, borderRadius: RADII.pill, backgroundColor: colors.lilacStrong, shadowColor: colors.lilacStrong, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 16, zIndex: 3 },
+  feedFallbackButtonText: { color: colors.bg, fontSize: 12, fontWeight: '800' },
   feedDragBubble: { position: 'absolute', left: '50%', bottom: 18, marginLeft: -76, width: 152, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 12, borderRadius: 24, borderWidth: 1, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 16 },
   feedDragBubbleWeb: { cursor: 'grab', touchAction: 'none', userSelect: 'none' },
   feedDragBubbleActive: { shadowColor: colors.pinkStrong, shadowOpacity: 0.24, shadowRadius: 22 },
