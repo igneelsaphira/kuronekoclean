@@ -52,7 +52,13 @@ function DesktopCompanionPanel({ styles, colors }) {
   return (
     <View style={styles.desktopPanel}>
       <View style={styles.desktopHero}>
-        <Text style={styles.desktopEyebrow}>Kuroclean</Text>
+        <View style={styles.desktopHeroTopRow}>
+          <Text style={styles.desktopEyebrow}>Kuroclean</Text>
+          <View style={styles.desktopLivePill}>
+            <View style={styles.desktopLiveDot} />
+            <Text style={styles.desktopLiveText}>Hoy</Text>
+          </View>
+        </View>
         <Text style={styles.desktopTitle}>Una companera suave para ordenar dias reales.</Text>
         <Text style={styles.desktopText}>Limpieza amable, mini recompensas y una casita cozy para Kuroneko.</Text>
 
@@ -122,7 +128,10 @@ function WebPhoneShell({ styles, children }) {
 
   return (
     <View style={styles.webPhoneWrap}>
-      <View style={styles.webPhoneHeader}><Text style={styles.webPhoneHeaderText}>Vista mobile</Text></View>
+      <View style={styles.webPhoneHeader}>
+        <View style={styles.webPhoneHeaderDot} />
+        <Text style={styles.webPhoneHeaderText}>Vista mobile</Text>
+      </View>
       <View style={[styles.webPhone, { width: frameW, height: frameH }]}>
         <View style={styles.webPhoneInner}>{children}</View>
       </View>
@@ -134,6 +143,9 @@ function DesktopTopBar({ styles, colors, activeRoute, onNavigate }) {
   return (
     <View style={styles.desktopTopBar}>
       <View style={styles.desktopTopBrand}>
+        <View style={styles.desktopBrandMark}>
+          <Ionicons name="sparkles" size={16} color={colors.bg} />
+        </View>
         <Text style={styles.desktopTopBrandText}>Kuroclean</Text>
       </View>
       <View style={styles.desktopTopTabs}>
@@ -182,9 +194,19 @@ function AppTabs({ styles, colors, hideTabBar = false }) {
 
 function AuthReminderBanner({ styles, colors }) {
   const { remainingGraceMs, signInWithGoogle, authBusy, configured } = useAuth();
+  const { width } = useWindowDimensions();
   const minutes = Math.floor(remainingGraceMs / 60000);
   const seconds = Math.floor((remainingGraceMs % 60000) / 1000);
   const timerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+  if (Platform.OS === 'web' && width < 720) {
+    return (
+      <TouchableOpacity style={styles.authCompactButton} onPress={signInWithGoogle} activeOpacity={0.82} disabled={authBusy || !configured}>
+        <Ionicons name="logo-google" size={14} color={colors.text} />
+        <Text style={styles.authBannerButtonText}>{configured ? (authBusy ? 'Abriendo...' : 'Entrar') : 'Configurar'}</Text>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <View style={styles.authBanner}>
@@ -236,15 +258,9 @@ function DesktopWideApp({ styles, colors, navigationTheme, themeMode }) {
     >
       <StatusBar style={themeMode === 'dark' ? 'light' : 'dark'} />
       <View style={styles.webRoot}>
-        <View style={[styles.webGlowA, { backgroundColor: colors.lilac + '33' }]} />
-        <View style={[styles.webGlowB, { backgroundColor: colors.blue + '22' }]} />
-        <View style={[styles.webGlowC, { backgroundColor: colors.pink + '2e' }]} />
-        <View style={[styles.webGlowD, { backgroundColor: colors.gold + '1f' }]} />
-        <View style={styles.webSparkleRow}>
-          <View style={[styles.webSparkle, styles.webSparkleOne, { backgroundColor: colors.pinkStrong }]} />
-          <View style={[styles.webSparkle, styles.webSparkleTwo, { backgroundColor: colors.blueStrong }]} />
-          <View style={[styles.webSparkle, styles.webSparkleThree, { backgroundColor: colors.lilacStrong }]} />
-        </View>
+        <View style={styles.webPatternRailLeft} />
+        <View style={styles.webPatternRailRight} />
+        <View style={styles.webGridOverlay} />
 
         <View style={[styles.webWideLayout, { minHeight: desktopHeight, height: desktopHeight }]}> 
           <View style={styles.desktopMainColumn}>
@@ -390,67 +406,41 @@ const createStyles = (colors) => StyleSheet.create({
     position: 'relative',
     overflow: 'auto',
   },
-  webGlowA: {
+  webPatternRailLeft: {
     position: 'absolute',
-    width: 440,
-    height: 440,
-    borderRadius: 220,
-    top: -120,
-    left: -80,
+    top: -40,
+    bottom: -40,
+    left: 54,
+    width: 88,
+    backgroundColor: colors.bgGlass,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: colors.border,
+    opacity: 0.44,
+    transform: [{ rotate: '-8deg' }],
   },
-  webGlowB: {
+  webPatternRailRight: {
     position: 'absolute',
-    width: 360,
-    height: 360,
-    borderRadius: 180,
-    bottom: -100,
-    right: -70,
+    top: -30,
+    bottom: -30,
+    right: 90,
+    width: 138,
+    backgroundColor: colors.bgCardAlt,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: colors.border,
+    opacity: 0.2,
+    transform: [{ rotate: '11deg' }],
   },
-  webGlowC: {
+  webGridOverlay: {
     position: 'absolute',
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    top: '28%',
-    right: '18%',
-  },
-  webGlowD: {
-    position: 'absolute',
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    bottom: 120,
-    left: '12%',
-  },
-  webSparkleRow: {
-    position: 'absolute',
-    top: 54,
-    right: 86,
-    width: 120,
-    height: 90,
-  },
-  webSparkle: {
-    position: 'absolute',
-    borderRadius: RADII.pill,
-    opacity: 0.8,
-  },
-  webSparkleOne: {
-    width: 10,
-    height: 10,
-    top: 10,
-    left: 18,
-  },
-  webSparkleTwo: {
-    width: 8,
-    height: 8,
-    top: 34,
+    top: 22,
+    left: 22,
     right: 22,
-  },
-  webSparkleThree: {
-    width: 14,
-    height: 14,
-    bottom: 8,
-    left: 52,
+    bottom: 22,
+    borderWidth: 1,
+    borderColor: colors.border,
+    opacity: 0.24,
   },
   webWideLayout: {
     width: '100%',
@@ -458,7 +448,7 @@ const createStyles = (colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     justifyContent: 'space-between',
-    gap: 24,
+    gap: 22,
     marginTop: 8,
     marginBottom: 16,
   },
@@ -469,8 +459,8 @@ const createStyles = (colors) => StyleSheet.create({
   },
   desktopTopBar: {
     height: 74,
-    paddingHorizontal: 18,
-    borderRadius: 30,
+    paddingHorizontal: 16,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: colors.borderStrong,
     backgroundColor: colors.bgGlassStrong,
@@ -479,19 +469,30 @@ const createStyles = (colors) => StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 18,
     zIndex: 20,
-    shadowColor: colors.pinkStrong,
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.12,
     shadowRadius: 28,
   },
   desktopTopBrand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     paddingRight: 14,
+  },
+  desktopBrandMark: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.gold,
   },
   desktopTopBrandText: {
     color: colors.text,
     fontSize: 18,
     fontWeight: '800',
-    letterSpacing: 0.4,
+    letterSpacing: 0,
   },
   desktopTopTabs: {
     flexDirection: 'row',
@@ -513,7 +514,7 @@ const createStyles = (colors) => StyleSheet.create({
     borderColor: colors.border,
   },
   desktopTopTabActive: {
-    backgroundColor: colors.bgCard,
+    backgroundColor: `${colors.gold}20`,
     borderColor: colors.borderStrong,
   },
   desktopTopTabText: {
@@ -528,7 +529,7 @@ const createStyles = (colors) => StyleSheet.create({
     flex: 1,
     minWidth: 0,
     minHeight: 0,
-    borderRadius: 36,
+    borderRadius: 26,
     overflow: 'hidden',
     backgroundColor: colors.bgSoft,
     borderWidth: 1,
@@ -541,19 +542,19 @@ const createStyles = (colors) => StyleSheet.create({
     position: 'relative',
   },
   desktopPanelWrap: {
-    width: 420,
+    width: 430,
     padding: 4,
   },
   desktopPanel: {
     flex: 1,
-    padding: 28,
-    borderRadius: RADII.xl,
+    padding: 24,
+    borderRadius: 26,
     backgroundColor: colors.bgGlass,
     borderWidth: 1,
     borderColor: colors.border,
     justifyContent: 'space-between',
     overflow: 'hidden',
-    shadowColor: colors.lilacStrong,
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 18 },
     shadowOpacity: 0.14,
     shadowRadius: 34,
@@ -561,16 +562,43 @@ const createStyles = (colors) => StyleSheet.create({
   desktopHero: {
     marginBottom: 24,
   },
-  desktopEyebrow: {
-    color: colors.pinkStrong,
-    fontSize: 12,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
+  desktopHeroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 10,
+  },
+  desktopEyebrow: {
+    color: colors.gold,
+    fontSize: 12,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  desktopLivePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingVertical: 6,
+    paddingHorizontal: 9,
+    borderRadius: RADII.pill,
+    backgroundColor: colors.successBg,
+    borderWidth: 1,
+    borderColor: colors.successBorder,
+  },
+  desktopLiveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.mintStrong,
+  },
+  desktopLiveText: {
+    color: colors.textSoft,
+    fontSize: 11,
+    fontWeight: '800',
   },
   desktopTitle: {
     color: colors.text,
-    fontSize: 32,
+    fontSize: 31,
     fontWeight: '700',
     lineHeight: 40,
     marginBottom: 12,
@@ -737,13 +765,16 @@ const createStyles = (colors) => StyleSheet.create({
   },
   webPhoneHeader: {
     marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: RADII.pill,
+    borderRadius: 16,
     backgroundColor: colors.bgGlassStrong,
     borderWidth: 1,
     borderColor: colors.border,
-    shadowColor: colors.pinkStrong,
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.14,
     shadowRadius: 18,
@@ -752,15 +783,21 @@ const createStyles = (colors) => StyleSheet.create({
     color: colors.textMuted,
     fontSize: 11,
     textTransform: 'uppercase',
-    letterSpacing: 1.6,
+    letterSpacing: 1.2,
+  },
+  webPhoneHeaderDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.mintStrong,
   },
   webPhone: {
-    borderRadius: 34,
+    borderRadius: 28,
     overflow: 'hidden',
     backgroundColor: colors.bgSoft,
     borderWidth: 4,
     borderColor: colors.borderStrong,
-    shadowColor: colors.lilacStrong,
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 24 },
     shadowOpacity: 0.3,
     shadowRadius: 42,
@@ -800,7 +837,7 @@ const createStyles = (colors) => StyleSheet.create({
   },
   authBanner: {
     position: 'absolute',
-    top: Platform.OS === 'web' ? 18 : 54,
+    bottom: Platform.OS === 'web' ? 18 : 54,
     left: 18,
     right: 18,
     padding: 12,
@@ -847,8 +884,27 @@ const createStyles = (colors) => StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
   },
+  authCompactButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: RADII.pill,
+    backgroundColor: colors.bgGlassStrong,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    zIndex: 60,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+  },
   fileModeBanner: {
-    top: Platform.OS === 'web' ? 90 : 124,
+    bottom: Platform.OS === 'web' ? 92 : 128,
     backgroundColor: colors.warningBg,
     borderColor: colors.warningBorder,
   },
