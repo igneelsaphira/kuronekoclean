@@ -26,11 +26,30 @@ import { RADII } from '../theme/tokens';
 import { useAppTheme } from '../theme/useAppTheme';
 
 const KURO_IMAGE = require('../../assets/kuro-cat-cute.png');
+const KURO_RUN_SHEET = require('../../assets/kuro/kuro-run.png');
 
 const FEED_OPTIONS = [
   { id: 'strawberry-milk', emoji: '🍓', accent: '#f6c3da', name: 'Lechita rosa', note: 'Suave y dulce para empezar bonito.', hungerGain: 14, happinessGain: 4 },
   { id: 'onigiri', emoji: '🍙', accent: '#d9d7f8', name: 'Onigiri tibio', note: 'Comidita calmadita para recuperar energia.', hungerGain: 18, happinessGain: 5 },
   { id: 'pancake', emoji: '🥞', accent: '#f4d8b8', name: 'Hotcake de miel', note: 'Pequeno gustito para subir la ternura.', hungerGain: 16, happinessGain: 6 },
+];
+
+const GAME_PICKER_META = {
+  lint: { title: 'Sacar pelusas', description: 'Limpia la superficie con movimientos suaves.', icon: '✦', category: 'cleaning' },
+  roller: { title: 'Rodillo quitapelos', description: 'Pasa el rodillo hasta dejar todo livianito.', icon: '◒', category: 'cleaning' },
+  laundry: { title: 'Separar ropita', description: 'Manda cada prenda al canasto correcto.', icon: '▣', category: 'organizing' },
+  misplaced: { title: 'Fuera de lugar', description: 'Encuentra y acomoda lo que esta perdido.', icon: '◇', category: 'organizing' },
+  bath: { title: 'Bano burbujita', description: 'Revienta burbujas y enjuaga con calma.', icon: '○', category: 'care' },
+  bed: { title: 'Cama perfecta', description: 'Deja la cama lista para descansar.', icon: '☾', category: 'care' },
+  rooftop: { title: 'Kuro: Aventura de Tejados', description: 'Corre por Santiago de noche, salta y junta estrellitas.', icon: '★', category: 'kuro', featured: true },
+};
+
+const GAME_PICKER_CATEGORIES = [
+  { key: 'all', label: 'Todos' },
+  { key: 'cleaning', label: 'Limpieza' },
+  { key: 'organizing', label: 'Orden' },
+  { key: 'care', label: 'Cuidado' },
+  { key: 'kuro', label: 'Kuro' },
 ];
 
 function clamp(value) {
@@ -335,6 +354,120 @@ function FeedModal({ visible, styles, colors, onClose, onFeed }) {
   );
 }
 
+function KuroPickerSprite({ styles }) {
+  return (
+    <View style={styles.gamePickerKuroFrame}>
+      <Image
+        source={KURO_RUN_SHEET}
+        resizeMode="stretch"
+        style={styles.gamePickerKuroSheet}
+      />
+    </View>
+  );
+}
+
+function MiniGamePickerModal({ visible, styles, colors, games, onClose, onSelect, onSurprise }) {
+  const [activeCategory, setActiveCategory] = useState('all');
+  const visibleGames = activeCategory === 'all'
+    ? games
+    : games.filter((game) => game.category === activeCategory);
+
+  useEffect(() => {
+    if (visible) setActiveCategory('all');
+  }, [visible]);
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.gamePickerOverlay} onPress={onClose}>
+        <Pressable style={styles.gamePickerCard} onPress={(event) => event.stopPropagation()}>
+          <View style={styles.gamePickerHeader}>
+            <View style={styles.gamePickerHeaderCopy}>
+              <Text style={styles.gamePickerEyebrow}>Minijuegos cozy</Text>
+              <Text style={styles.gamePickerTitle}>¿A qué jugamos hoy?</Text>
+              <Text style={styles.gamePickerText}>Elige uno directo o deja que Kuro saque una sorpresa justa.</Text>
+            </View>
+            <TouchableOpacity style={styles.feedCloseButton} onPress={onClose} activeOpacity={0.8}>
+              <Ionicons name="close" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={styles.gamePickerScroll}
+            contentContainerStyle={styles.gamePickerScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <TouchableOpacity style={styles.surpriseGameCard} onPress={onSurprise} activeOpacity={0.88}>
+              <View style={styles.surpriseIconWrap}>
+                <Ionicons name="sparkles" size={22} color={colors.gold} />
+              </View>
+              <View style={styles.gamePickerCardCopy}>
+                <Text style={styles.surpriseTitle}>Aleatorio</Text>
+                <Text style={styles.gamePickerDescription}>Usa la bolsa justa: todos salen una vez antes de repetir.</Text>
+              </View>
+              <Ionicons name="shuffle" size={18} color={colors.gold} />
+            </TouchableOpacity>
+
+            <View style={styles.gameCategoryRow}>
+              {GAME_PICKER_CATEGORIES.map((category) => {
+                const active = category.key === activeCategory;
+                return (
+                  <TouchableOpacity
+                    key={category.key}
+                    style={[styles.gameCategoryPill, active && styles.gameCategoryPillActive]}
+                    onPress={() => setActiveCategory(category.key)}
+                    activeOpacity={0.82}
+                  >
+                    <Text style={[styles.gameCategoryText, active && styles.gameCategoryTextActive]}>{category.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.gamePickerGrid}>
+              {visibleGames.map((game) => {
+                const isFeatured = Boolean(game.featured);
+                return (
+                  <TouchableOpacity
+                    key={game.key}
+                    style={[styles.gameChoiceCard, isFeatured && styles.gameChoiceCardFeatured]}
+                    onPress={() => onSelect(game.key)}
+                    activeOpacity={0.88}
+                  >
+                    <View style={[styles.gameChoiceVisual, isFeatured && styles.gameChoiceVisualFeatured]}>
+                      {isFeatured ? (
+                        <KuroPickerSprite styles={styles} />
+                      ) : (
+                        <Text style={styles.gameChoiceIcon}>{game.icon}</Text>
+                      )}
+                    </View>
+                    <Text style={styles.gameChoiceTitle}>{game.title}</Text>
+                    <Text style={styles.gamePickerDescription}>{game.description}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function shuffleMiniGames(keys, previousKey = null) {
+  const shuffled = [...keys];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  if (shuffled.length > 1 && shuffled[0] === previousKey) {
+    [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+  }
+
+  return shuffled;
+}
+
 export default function GatitoScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -371,8 +504,14 @@ export default function GatitoScreen() {
   const [rewardToast, setRewardToast] = useState(null);
   const [previewItem, setPreviewItem] = useState(null);
   const [feedModalVisible, setFeedModalVisible] = useState(false);
+  const [gamePickerVisible, setGamePickerVisible] = useState(false);
   const bubbleOpacity = useRef(new Animated.Value(0)).current;
   const rewardOpacity = useRef(new Animated.Value(0)).current;
+  const gameBagRef = useRef([]);
+  const pickerGames = useMemo(() => ACTIVE_MINIGAME_KEYS.map((key) => ({
+    key,
+    ...GAME_PICKER_META[key],
+  })).filter((game) => game.title), []);
 
   useEffect(() => {
     let index = 0;
@@ -400,12 +539,20 @@ export default function GatitoScreen() {
     return undefined;
   }, [rewardOpacity, rewardToast]);
 
-  const startRandomMiniGame = () => {
-    const available = ACTIVE_MINIGAME_KEYS.filter((key) => key !== lastGameKey);
-    const pool = available.length ? available : ACTIVE_MINIGAME_KEYS;
-    const selected = pool[Math.floor(Math.random() * pool.length)];
+  const startSurpriseMiniGame = () => {
+    if (!gameBagRef.current.length) {
+      gameBagRef.current = shuffleMiniGames(ACTIVE_MINIGAME_KEYS, lastGameKey);
+    }
+
+    const selected = gameBagRef.current.shift();
     setLastGameKey(selected);
+    setGamePickerVisible(false);
     setActiveGameKey(selected);
+  };
+
+  const startSelectedMiniGame = (gameKey) => {
+    setGamePickerVisible(false);
+    setActiveGameKey(gameKey);
   };
 
   const handleMiniGameReward = (summary) => {
@@ -441,8 +588,8 @@ export default function GatitoScreen() {
       key: 'play',
       image: APP_ILLUSTRATIONS.playAction,
       title: 'Jugar',
-      text: 'Abre un minijuego sorpresa, corto y relajante.',
-      onPress: startRandomMiniGame,
+      text: 'Elige un minijuego o deja que Kuro te sorprenda.',
+      onPress: () => setGamePickerVisible(true),
     },
   ];
 
@@ -568,6 +715,15 @@ export default function GatitoScreen() {
       <RewardBubble styles={styles} rewardToast={rewardToast} opacity={rewardOpacity} />
       <ImagePreviewModal visible={Boolean(previewItem)} source={previewItem?.source} title={previewItem?.title} colors={colors} onClose={() => setPreviewItem(null)} />
       <FeedModal visible={feedModalVisible} styles={styles} colors={colors} onClose={() => setFeedModalVisible(false)} onFeed={handleFeed} />
+      <MiniGamePickerModal
+        visible={gamePickerVisible}
+        styles={styles}
+        colors={colors}
+        games={pickerGames}
+        onClose={() => setGamePickerVisible(false)}
+        onSelect={startSelectedMiniGame}
+        onSurprise={startSurpriseMiniGame}
+      />
       <MiniGameModal visible={Boolean(activeGameKey)} gameKey={activeGameKey} onClose={() => setActiveGameKey(null)} onReward={handleMiniGameReward} />
     </View>
   );
@@ -669,6 +825,34 @@ const createStyles = (colors) => StyleSheet.create({
   rewardToastText: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginBottom: 10 },
   rewardToastRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   rewardToastChip: { color: colors.textSoft, fontSize: 11, fontWeight: '700', paddingVertical: 6, paddingHorizontal: 8, borderRadius: RADII.pill, backgroundColor: colors.bgCardAlt },
+  gamePickerOverlay: { flex: 1, backgroundColor: 'rgba(6, 7, 18, 0.72)', justifyContent: 'center', alignItems: 'center', padding: 18 },
+  gamePickerCard: { width: '100%', maxWidth: 720, maxHeight: '88%', borderRadius: RADII.xl, backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.borderStrong, overflow: 'hidden', shadowColor: colors.lilacStrong, shadowOffset: { width: 0, height: 20 }, shadowOpacity: 0.24, shadowRadius: 30 },
+  gamePickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: colors.border },
+  gamePickerHeaderCopy: { flex: 1 },
+  gamePickerEyebrow: { color: colors.gold, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 },
+  gamePickerTitle: { color: colors.text, fontSize: 24, lineHeight: 30, fontWeight: '800', marginBottom: 7 },
+  gamePickerText: { color: colors.textMuted, fontSize: 13, lineHeight: 20 },
+  gamePickerScroll: { width: '100%' },
+  gamePickerScrollContent: { padding: 16, gap: 12 },
+  surpriseGameCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, backgroundColor: 'rgba(255, 215, 111, 0.11)', borderWidth: 1, borderColor: 'rgba(255, 215, 111, 0.34)' },
+  surpriseIconWrap: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255, 215, 111, 0.12)', borderWidth: 1, borderColor: 'rgba(255, 215, 111, 0.24)' },
+  surpriseTitle: { color: colors.text, fontSize: 16, lineHeight: 20, fontWeight: '900', marginBottom: 4 },
+  gamePickerCardCopy: { flex: 1, minWidth: 0 },
+  gameCategoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  gameCategoryPill: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: RADII.pill, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: colors.border },
+  gameCategoryPillActive: { backgroundColor: 'rgba(255, 215, 111, 0.16)', borderColor: 'rgba(255, 215, 111, 0.44)' },
+  gameCategoryText: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
+  gameCategoryTextActive: { color: colors.text },
+  gamePickerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  gameChoiceCard: { flexGrow: 1, flexBasis: 152, minWidth: 142, padding: 13, borderRadius: 18, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border },
+  gameChoiceCardFeatured: { flexBasis: 318, backgroundColor: 'rgba(114, 96, 201, 0.18)', borderColor: 'rgba(255, 215, 111, 0.34)' },
+  gameChoiceVisual: { height: 54, borderRadius: RADII.md, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: 10 },
+  gameChoiceVisualFeatured: { height: 68, backgroundColor: 'rgba(11, 17, 48, 0.72)' },
+  gameChoiceIcon: { color: colors.gold, fontSize: 25, fontWeight: '900' },
+  gameChoiceTitle: { color: colors.text, fontSize: 14, lineHeight: 18, fontWeight: '800', marginBottom: 5 },
+  gamePickerDescription: { color: colors.textMuted, fontSize: 12, lineHeight: 17 },
+  gamePickerKuroFrame: { width: 72, height: 50, overflow: 'hidden', transform: [{ scale: 1.06 }] },
+  gamePickerKuroSheet: { position: 'absolute', left: 0, top: 0, width: 288, height: 50 },
   feedModalOverlay: { flex: 1, backgroundColor: 'rgba(12, 8, 18, 0.56)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   feedModalCard: { width: '100%', maxWidth: 680, borderRadius: RADII.xl, backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.borderStrong, padding: 18, shadowColor: colors.pinkStrong, shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.2, shadowRadius: 28 },
   feedModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14 },

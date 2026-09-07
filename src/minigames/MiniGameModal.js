@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useCat } from '../context/CatContext';
 import { COLORS, RADII } from '../theme/tokens';
+import RooftopAdventureGame from './RooftopAdventureGame';
 
 export const ACTIVE_MINIGAME_KEYS = [
   'lint',
@@ -20,6 +21,7 @@ export const ACTIVE_MINIGAME_KEYS = [
   'misplaced',
   'bath',
   'bed',
+  'rooftop',
 ];
 
 const GAME_META = {
@@ -82,6 +84,12 @@ const GAME_META = {
       { label: 'Cama humana', boardColor: '#cfbce2' },
       { label: 'Rincon gatuno', boardColor: '#d8c2db' },
     ],
+  },
+  rooftop: {
+    title: 'Kuro: Aventura de Tejados',
+    subtitle: 'Corre por tejados nocturnos, salta suave y junta estrellitas.',
+    rewards: { coins: 7, hearts: 2, happiness: 6 },
+    reaction: 'Kuroneko vuelve con patitas cansadas, estrellitas doradas y mucha alegria.',
   },
 };
 
@@ -610,6 +618,7 @@ const GAME_COMPONENTS = {
   misplaced: MisplacedGame,
   bath: BubbleBathGame,
   bed: BedGame,
+  rooftop: RooftopAdventureGame,
 };
 
 export function MiniGameModal({ visible, gameKey, onClose, onReward }) {
