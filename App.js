@@ -192,7 +192,7 @@ function AppTabs({ styles, colors, hideTabBar = false }) {
   );
 }
 
-function AuthReminderBanner({ styles, colors }) {
+function AuthReminderBanner({ styles, colors, wide }) {
   const { remainingGraceMs, signInWithGoogle, authBusy, configured } = useAuth();
   const { width } = useWindowDimensions();
   const minutes = Math.floor(remainingGraceMs / 60000);
@@ -209,7 +209,7 @@ function AuthReminderBanner({ styles, colors }) {
   }
 
   return (
-    <View style={styles.authBanner}>
+    <View style={[styles.authBanner, wide && styles.authBannerWide]}>
       <View style={styles.authBannerCopy}>
         <Text style={styles.authBannerTitle}>Inicia sesion para guardar tu progreso</Text>
         <Text style={styles.authBannerText}>
@@ -344,7 +344,7 @@ function ThemedAppChrome() {
       <View style={styles.appFrame}>
         <DesktopWideApp styles={styles} colors={colors} navigationTheme={navigationTheme} themeMode={themeMode} />
         {isFileMode ? <FileModeBanner styles={styles} colors={colors} /> : null}
-        {!isAuthenticated ? <AuthReminderBanner styles={styles} colors={colors} /> : null}
+        {!isAuthenticated ? <AuthReminderBanner styles={styles} colors={colors} wide /> : null}
       </View>
     );
   }
@@ -853,6 +853,10 @@ const createStyles = (colors) => StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.14,
     shadowRadius: 24,
+  },
+  authBannerWide: {
+    left: 'auto',
+    maxWidth: 420,
   },
   authBannerCopy: {
     flex: 1,
