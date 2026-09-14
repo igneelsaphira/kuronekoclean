@@ -35,7 +35,7 @@ const FEED_OPTIONS = [
 ];
 
 const GAME_PICKER_META = {
-  lint: { title: 'Atrapa Pelusas', description: 'Kuro ronca: atrapa las 12 pelusas por la sala.', icon: '★', category: 'kuro', featured: true },
+  lint: { title: 'Atrapa Pelusas', description: 'Kuro ronca: atrapa las 12 pelusas por la sala.', icon: '★', category: 'kuro', featured: true, art: 'kuroSleep' },
   roller: { title: 'Rodillo quitapelos', description: 'Pasa el rodillo hasta dejar todo livianito.', icon: '◒', category: 'cleaning' },
   laundry: { title: 'Separar ropita', description: 'Manda cada prenda al canasto correcto.', icon: '▣', category: 'organizing' },
   misplaced: { title: 'Fuera de lugar', description: 'Encuentra y acomoda lo que esta perdido.', icon: '◇', category: 'organizing' },
@@ -435,7 +435,9 @@ function MiniGamePickerModal({ visible, styles, colors, games, onClose, onSelect
                   >
                     <View style={[styles.gameChoiceVisual, isFeatured && styles.gameChoiceVisualFeatured]}>
                       {isFeatured ? (
-                        <KuroPickerSprite styles={styles} />
+                        game.art && APP_ILLUSTRATIONS[game.art]
+                          ? <Image source={APP_ILLUSTRATIONS[game.art]} style={styles.gameChoiceArt} resizeMode="contain" />
+                          : <KuroPickerSprite styles={styles} />
                       ) : (
                         <Text style={styles.gameChoiceIcon}>{game.icon}</Text>
                       )}
@@ -852,6 +854,7 @@ const createStyles = (colors) => StyleSheet.create({
   gameChoiceCardFeatured: { flexBasis: 318, backgroundColor: 'rgba(114, 96, 201, 0.18)', borderColor: 'rgba(255, 215, 111, 0.34)' },
   gameChoiceVisual: { height: 54, borderRadius: RADII.md, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: 10 },
   gameChoiceVisualFeatured: { height: 68, backgroundColor: 'rgba(11, 17, 48, 0.72)' },
+  gameChoiceArt: { width: 64, height: 64 },
   gameChoiceIcon: { color: colors.gold, fontSize: 25, fontWeight: '900' },
   gameChoiceTitle: { color: colors.text, fontSize: 14, lineHeight: 18, fontWeight: '800', marginBottom: 5 },
   gamePickerDescription: { color: colors.textMuted, fontSize: 12, lineHeight: 17 },
