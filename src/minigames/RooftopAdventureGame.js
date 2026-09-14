@@ -23,7 +23,7 @@ function Building({ roof, height }) {
   );
 }
 
-export default function RooftopAdventureGame() {
+export default function RooftopAdventureGame({ onComplete, onClose }) {
   const dimensions = useWindowDimensions();
   const [size, setSize] = useState({ width: dimensions.width, height: dimensions.height });
   const config = configFor(size.width, size.height);
@@ -144,6 +144,7 @@ export default function RooftopAdventureGame() {
           <Text style={[styles.description, compact && { marginBottom: 16 }]}>{world.status === 'start' ? 'Salta de tejado en tejado y sigue las estrellas. Si no saltas, Kuro caerá entre los edificios.' : world.status === 'paused' ? 'Kuro te espera. Continúa cuando quieras.' : `Recorriste ${Math.floor(world.distance)} m y juntaste ${world.stars} ${world.stars === 1 ? 'estrella' : 'estrellas'}.`}</Text>
           {world.status === 'ended' ? <View style={styles.scoreRow}><Text style={styles.score}>{score} <Text style={styles.scoreLabel}>PUNTOS</Text></Text><Text style={styles.best}>MEJOR DE LA SESIÓN  {Math.max(best, score)}</Text></View> : null}
           <Pressable accessibilityRole="button" onPress={world.status === 'paused' ? pause : start} style={({ pressed }) => [styles.play, pressed && styles.pressed]}><Text style={styles.playText}>{world.status === 'start' ? 'Jugar  →' : world.status === 'paused' ? 'Continuar  →' : 'Volver a intentar  →'}</Text></Pressable>
+          {world.status === 'ended' ? <Pressable accessibilityRole="button" accessibilityLabel="Cobrar recompensa" onPress={() => onComplete?.()} style={({ pressed }) => [styles.collect, pressed && styles.pressed]}><Text style={styles.playText}>Cobrar recompensa  ✦</Text></Pressable> : null}
           <Text style={styles.instructions}>Espacio, ↑ o toca para saltar. Dos saltos antes de aterrizar.</Text>
         </View>
       </View> : null}
@@ -152,7 +153,7 @@ export default function RooftopAdventureGame() {
 }
 
 const styles = StyleSheet.create({
-  viewport: { flex: 1, overflow: 'hidden', backgroundColor: '#10152e', ...(Platform.OS === 'web' ? { touchAction: 'none', userSelect: 'none' } : {}) },
+  viewport: { height: 460, minHeight: 460, width: '100%', overflow: 'hidden', backgroundColor: '#10152e', ...(Platform.OS === 'web' ? { touchAction: 'none', userSelect: 'none' } : {}) },
   scene: { position: 'absolute', overflow: 'hidden', backgroundColor: '#111831' },
   horizon: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#292341' },
   skyStar: { position: 'absolute', backgroundColor: '#ffdc9a' },
@@ -184,6 +185,7 @@ const styles = StyleSheet.create({
   title: { color: '#fff1da', fontSize: 34, lineHeight: 39, fontWeight: '800', marginBottom: 16 },
   description: { color: '#c1bed1', fontSize: 15, lineHeight: 23, marginBottom: 24 },
   play: { minHeight: 52, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f6d18a', borderRadius: 14 },
+  collect: { marginTop: 10, minHeight: 52, alignItems: 'center', justifyContent: 'center', backgroundColor: '#8fd6a4', borderRadius: 14 },
   pressed: { opacity: 0.8 },
   playText: { color: '#272137', fontSize: 16, fontWeight: '800' },
   instructions: { color: '#9392ac', fontSize: 12, lineHeight: 18, marginTop: 16, textAlign: 'center' },

@@ -675,7 +675,7 @@ export function MiniGameModal({ visible, gameKey, onClose, onReward }) {
             </TouchableOpacity>
           </View>
 
-          <GameComponent onComplete={handleComplete} variant={variant} soundEnabled={settings.soundEnabled} />
+          <GameComponent onComplete={handleComplete} onClose={onClose} variant={variant} soundEnabled={settings.soundEnabled} />
 
           {showResult ? (
             <View style={styles.resultOverlay}>
