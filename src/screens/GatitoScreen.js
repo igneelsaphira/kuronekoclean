@@ -623,7 +623,7 @@ export default function GatitoScreen() {
         </View>
 
         <View style={[styles.topGrid, isWideLayout && styles.topGridWide]}>
-          <View style={styles.sceneCard}>
+          <View style={[styles.sceneCard, isWideLayout && styles.sceneCardWide]}>
             <StudyCornerRoom themeKey={equippedTheme} purchasedItems={purchasedItems} />
 
             <View style={styles.sceneTopRow}>
@@ -642,7 +642,7 @@ export default function GatitoScreen() {
             </View>
           </View>
 
-          <View style={styles.sideColumn}>
+          <View style={[styles.sideColumn, isWideLayout && styles.sideColumnWide]}>
             <View style={styles.statsGrid}>
               <View style={styles.statCard}><Text style={styles.statLabel}>Rutina de hoy</Text><Text style={[styles.statValue, { color: colors.blue }]}>{clamp(progresoAseo)}%</Text><Text style={styles.statNote}>Lo diario hace que la casa respire.</Text></View>
               <View style={styles.statCard}><Text style={styles.statLabel}>Progreso total</Text><Text style={[styles.statValue, { color: colors.lilacStrong }]}>{clamp(progresoGeneral)}%</Text><Text style={styles.statNote}>Tambien cuentan semana, mes y profundo.</Text></View>
@@ -686,7 +686,7 @@ export default function GatitoScreen() {
         </View>
 
         <View style={[styles.bottomGrid, isWideLayout && styles.bottomGridWide]}>
-          <View style={styles.quickCard}>
+          <View style={[styles.quickCard, isWideLayout && styles.quickCardWide]}>
             <Text style={styles.sectionTitle}>Entradas rapidas</Text>
             <Text style={styles.focusSubtitle}>Para los dias en que cuesta empezar, pero igual quieres mover algo.</Text>
             <View style={styles.quickActionRow}>
@@ -704,7 +704,7 @@ export default function GatitoScreen() {
             </View>
           </View>
 
-          <View style={styles.ritualCard}>
+          <View style={[styles.ritualCard, isWideLayout && styles.ritualCardWide]}>
             <Text style={styles.sectionTitle}>Si hoy estas con poca energia</Text>
             <Text style={styles.ritualText}>Haz una sola tarea corta, alimenta a Kuroneko y deja que eso sea suficiente por ahora.</Text>
             <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Ritual')} activeOpacity={0.85}><Text style={styles.primaryButtonText}>Abrir ritual suave</Text><Ionicons name="arrow-forward" size={16} color={colors.bg} /></TouchableOpacity>
@@ -745,7 +745,8 @@ const createStyles = (colors) => StyleSheet.create({
   ritualButtonText: { color: colors.textSoft, fontSize: 12, fontWeight: '700' },
   topGrid: { width: '100%' },
   topGridWide: { flexDirection: 'row', gap: 16, alignItems: 'stretch' },
-  sceneCard: { flex: 1.08, height: 352, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: colors.borderStrong, marginBottom: 18, position: 'relative', backgroundColor: colors.bgGlassStrong, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.22, shadowRadius: 28 },
+  sceneCard: { flexGrow: 0, flexShrink: 0, width: '100%', height: 352, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: colors.borderStrong, marginBottom: 18, position: 'relative', backgroundColor: colors.bgGlassStrong, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.22, shadowRadius: 28 },
+  sceneCardWide: { width: 'auto', flex: 1.08, marginBottom: 0 },
   sceneTopRow: { position: 'absolute', top: 16, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sceneChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 15, borderWidth: 1 },
   sceneChipDot: { width: 8, height: 8, borderRadius: 4 },
@@ -756,7 +757,8 @@ const createStyles = (colors) => StyleSheet.create({
   bubble: { maxWidth: 276, marginBottom: 4, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.24)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.36)' },
   bubbleText: { color: colors.ink, fontSize: 13, lineHeight: 18, textAlign: 'center', fontWeight: '600' },
   catImage: { width: 210, height: 210 },
-  sideColumn: { flex: 0.92, minWidth: 0 },
+  sideColumn: { flexGrow: 0, flexShrink: 0, width: '100%', minWidth: 0 },
+  sideColumnWide: { width: 'auto', flex: 0.92 },
   statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 18 },
   statCard: { flex: 1, minHeight: 126, padding: 16, borderRadius: 18, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.12, shadowRadius: 18 },
   statLabel: { color: colors.textMuted, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 },
@@ -803,7 +805,9 @@ const createStyles = (colors) => StyleSheet.create({
   emptyInlineText: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
   bottomGrid: { width: '100%' },
   bottomGridWide: { flexDirection: 'row', gap: 16, alignItems: 'stretch' },
-  quickCard: { flex: 1.35, padding: 18, borderRadius: 18, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border, marginBottom: 18, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.12, shadowRadius: 16 },
+  quickCardWide: { width: 'auto', flex: 1.35, marginBottom: 0 },
+  ritualCardWide: { width: 'auto', flex: 1, marginBottom: 0 },
+  quickCard: { flexGrow: 0, flexShrink: 0, width: '100%', padding: 18, borderRadius: 18, backgroundColor: colors.bgGlass, borderWidth: 1, borderColor: colors.border, marginBottom: 18, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.12, shadowRadius: 16 },
   quickActionRow: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 14 },
   quickActionButton: { flex: 1, padding: 14, borderRadius: 16, backgroundColor: colors.bgGlassStrong, borderWidth: 1, borderColor: colors.border, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 14 },
   quickActionTitle: { color: colors.text, fontSize: 14, fontWeight: '700', marginTop: 10, marginBottom: 4 },
@@ -816,7 +820,7 @@ const createStyles = (colors) => StyleSheet.create({
   quickMiniCopy: { flex: 1 },
   quickMiniTitle: { color: colors.text, fontSize: 13, fontWeight: '700', marginBottom: 2 },
   quickMiniText: { color: colors.textFaint, fontSize: 11 },
-  ritualCard: { flex: 1, padding: 18, borderRadius: 18, backgroundColor: `${colors.pink}12`, borderWidth: 1, borderColor: `${colors.pinkStrong}42`, marginBottom: 18, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 14 }, shadowOpacity: 0.14, shadowRadius: 18 },
+  ritualCard: { flexGrow: 0, flexShrink: 0, width: '100%', padding: 18, borderRadius: 18, backgroundColor: `${colors.pink}12`, borderWidth: 1, borderColor: `${colors.pinkStrong}42`, marginBottom: 18, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 14 }, shadowOpacity: 0.14, shadowRadius: 18 },
   ritualText: { color: colors.textMuted, fontSize: 14, lineHeight: 21, marginBottom: 16 },
   primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, paddingHorizontal: 16, borderRadius: RADII.pill, backgroundColor: colors.lilacStrong, shadowColor: colors.lilacStrong, shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.2, shadowRadius: 18 },
   primaryButtonText: { color: colors.bg, fontSize: 13, fontWeight: '800' },
