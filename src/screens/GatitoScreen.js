@@ -97,22 +97,22 @@ function RewardBubble({ styles, rewardToast, opacity }) {
 
 function IllustrationCard({ styles, image, title, text, onPress, onPreview }) {
   return (
-    <TouchableOpacity style={styles.illustrationCard} onPress={onPress} activeOpacity={0.86}>
-      <TouchableOpacity
-        style={styles.illustrationFrame}
-        activeOpacity={0.9}
-        delayLongPress={2000}
-        onLongPress={() => onPreview?.(image, title)}
-      >
+    <Pressable
+      style={styles.illustrationCard}
+      onPress={onPress}
+      onLongPress={() => onPreview?.(image, title)}
+      delayLongPress={2000}
+    >
+      <View style={styles.illustrationFrame}>
         <Image source={image} style={styles.illustrationImage} resizeMode="contain" />
-      </TouchableOpacity>
+      </View>
       <View style={styles.illustrationCopy}>
         <Text style={styles.illustrationTitle}>{title}</Text>
         <Text style={styles.illustrationText}>
           {title === 'Alimentar' ? 'Abre una ventanita suave con 3 comiditas para arrastrar hasta Kuro.' : text}
         </Text>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -677,11 +677,11 @@ export default function GatitoScreen() {
           <View style={styles.focusHeader}><View><Text style={styles.sectionTitle}>Lo mejor para hoy</Text><Text style={styles.focusSubtitle}>Si no sabes por donde partir, prueba con una de estas.</Text></View><TouchableOpacity onPress={() => navigation.navigate('Rutinas')} activeOpacity={0.8}><Text style={styles.linkText}>Ver todas</Text></TouchableOpacity></View>
 
           {sugerenciasHoy.length ? sugerenciasHoy.map((task) => (
-            <TouchableOpacity key={task.id} style={styles.focusTask} onPress={() => navigation.navigate('Rutinas')} activeOpacity={0.82}>
-              <TouchableOpacity style={styles.focusArtWrap} activeOpacity={0.9} delayLongPress={2000} onLongPress={() => getTaskIllustration(task.id, equippedTaskArt) && setPreviewItem({ source: getTaskIllustration(task.id, equippedTaskArt), title: task.nombre })}>{getTaskIllustration(task.id, equippedTaskArt) ? <Image source={getTaskIllustration(task.id, equippedTaskArt)} style={styles.focusArt} resizeMode="contain" /> : <Text style={styles.focusEmoji}>{task.icono}</Text>}</TouchableOpacity>
+            <Pressable key={task.id} style={styles.focusTask} onPress={() => navigation.navigate('Rutinas')} onLongPress={() => getTaskIllustration(task.id, equippedTaskArt) && setPreviewItem({ source: getTaskIllustration(task.id, equippedTaskArt), title: task.nombre })} delayLongPress={2000}>
+              <View style={styles.focusArtWrap}>{getTaskIllustration(task.id, equippedTaskArt) ? <Image source={getTaskIllustration(task.id, equippedTaskArt)} style={styles.focusArt} resizeMode="contain" /> : <Text style={styles.focusEmoji}>{task.icono}</Text>}</View>
               <View style={styles.focusTaskCopy}><Text style={styles.focusTaskTitle}>{task.nombre}</Text><Text style={styles.focusTaskText}>{task.detalle}</Text></View>
               <View style={styles.focusTaskTime}><Text style={styles.focusTaskTimeText}>{task.duracion}</Text></View>
-            </TouchableOpacity>
+            </Pressable>
           )) : <View style={styles.emptyInlineCard}><Text style={styles.emptyInlineTitle}>Ya no quedan sugerencias abiertas por ahora.</Text><Text style={styles.emptyInlineText}>Puedes revisar semana o hacer una limpieza profunda si te nace.</Text></View>}
         </View>
 
@@ -695,11 +695,11 @@ export default function GatitoScreen() {
             </View>
             <View style={styles.quickListWrap}>
               {tareasRapidas.length ? tareasRapidas.slice(0, 3).map((task) => (
-                <TouchableOpacity key={task.id} style={styles.quickMiniTask} onPress={() => navigation.navigate('Rutinas', { presetTab: 'diaria', presetFilter: 'quick' })} activeOpacity={0.82}>
-                  <TouchableOpacity style={styles.quickMiniArtWrap} activeOpacity={0.9} delayLongPress={2000} onLongPress={() => getTaskIllustration(task.id, equippedTaskArt) && setPreviewItem({ source: getTaskIllustration(task.id, equippedTaskArt), title: task.nombre })}>{getTaskIllustration(task.id, equippedTaskArt) ? <Image source={getTaskIllustration(task.id, equippedTaskArt)} style={styles.quickMiniArt} resizeMode="contain" /> : <Text style={styles.quickMiniEmoji}>{task.icono}</Text>}</TouchableOpacity>
+                <Pressable key={task.id} style={styles.quickMiniTask} onPress={() => navigation.navigate('Rutinas', { presetTab: 'diaria', presetFilter: 'quick' })} onLongPress={() => getTaskIllustration(task.id, equippedTaskArt) && setPreviewItem({ source: getTaskIllustration(task.id, equippedTaskArt), title: task.nombre })} delayLongPress={2000}>
+                  <View style={styles.quickMiniArtWrap}>{getTaskIllustration(task.id, equippedTaskArt) ? <Image source={getTaskIllustration(task.id, equippedTaskArt)} style={styles.quickMiniArt} resizeMode="contain" /> : <Text style={styles.quickMiniEmoji}>{task.icono}</Text>}</View>
                   <View style={styles.quickMiniCopy}><Text style={styles.quickMiniTitle}>{task.nombre}</Text><Text style={styles.quickMiniText}>{task.duracion}</Text></View>
                   <Ionicons name="arrow-forward" size={14} color={colors.textFaint} />
-                </TouchableOpacity>
+                </Pressable>
               )) : <View style={styles.emptyInlineCard}><Text style={styles.emptyInlineTitle}>No hay tareas cortitas pendientes ahora mismo.</Text><Text style={styles.emptyInlineText}>Buen trabajo. Puedes volver mas tarde o mirar semana/mes.</Text></View>}
             </View>
           </View>
