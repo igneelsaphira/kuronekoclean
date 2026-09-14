@@ -35,7 +35,7 @@ const FEED_OPTIONS = [
 ];
 
 const GAME_PICKER_META = {
-  lint: { title: 'Sacar pelusas', description: 'Limpia la superficie con movimientos suaves.', icon: '✦', category: 'cleaning' },
+  lint: { title: 'Atrapa Pelusas', description: 'Kuro ronca: atrapa las 12 pelusas por la sala.', icon: '★', category: 'kuro', featured: true },
   roller: { title: 'Rodillo quitapelos', description: 'Pasa el rodillo hasta dejar todo livianito.', icon: '◒', category: 'cleaning' },
   laundry: { title: 'Separar ropita', description: 'Manda cada prenda al canasto correcto.', icon: '▣', category: 'organizing' },
   misplaced: { title: 'Fuera de lugar', description: 'Encuentra y acomoda lo que esta perdido.', icon: '◇', category: 'organizing' },
