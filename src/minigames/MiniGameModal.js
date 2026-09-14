@@ -12,6 +12,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useCat } from '../context/CatContext';
 import { COLORS, RADII } from '../theme/tokens';
+import RooftopAdventureGame from './RooftopAdventureGame';
+import SnoreLintGame from '../pelusas/SnoreLintGame';
 
 export const ACTIVE_MINIGAME_KEYS = [
   'lint',
@@ -20,20 +22,15 @@ export const ACTIVE_MINIGAME_KEYS = [
   'misplaced',
   'bath',
   'bed',
+  'rooftop',
 ];
 
 const GAME_META = {
   lint: {
-    title: 'Sacar pelusas',
-    subtitle: 'Arrastra el dedo y deja la superficie impecable.',
+    title: 'Atrapa Pelusas',
+    subtitle: 'Kuro ronca en el sillón: atrapa las 12 pelusas sin despertarlo.',
     rewards: { coins: 4, hearts: 1, happiness: 4 },
-    reaction: 'Kuroneko ronronea feliz con la tela limpiecita.',
-    variants: [
-      { label: 'Cojin', boardColor: '#dbcab6' },
-      { label: 'Manta', boardColor: '#d8c2cf' },
-      { label: 'Sillon', boardColor: '#cfc4b7' },
-      { label: 'Piso', boardColor: '#d1c8bb' },
-    ],
+    reaction: 'Kuroneko ni se enteró y la sala quedó limpiecita.',
   },
   roller: {
     title: 'Rodillo quitapelos',
@@ -82,6 +79,12 @@ const GAME_META = {
       { label: 'Cama humana', boardColor: '#cfbce2' },
       { label: 'Rincon gatuno', boardColor: '#d8c2db' },
     ],
+  },
+  rooftop: {
+    title: 'Kuro: Aventura de Tejados',
+    subtitle: 'Corre por tejados nocturnos, salta suave y junta estrellitas.',
+    rewards: { coins: 7, hearts: 2, happiness: 6 },
+    reaction: 'Kuroneko vuelve con patitas cansadas, estrellitas doradas y mucha alegria.',
   },
 };
 
@@ -134,83 +137,6 @@ function CozyBoard({ children, footer }) {
       {children}
       {footer ? <View style={styles.boardFooter}>{footer}</View> : null}
     </View>
-  );
-}
-
-function LintSweepGame({ onComplete, variant, soundEnabled }) {
-  const lintPoints = useMemo(() => ([
-    { id: 'l1', x: 16, y: 20 },
-    { id: 'l2', x: 28, y: 35 },
-    { id: 'l3', x: 43, y: 18 },
-    { id: 'l4', x: 58, y: 30 },
-    { id: 'l5', x: 72, y: 24 },
-    { id: 'l6', x: 80, y: 48 },
-    { id: 'l7', x: 20, y: 58 },
-    { id: 'l8', x: 34, y: 64 },
-    { id: 'l9', x: 52, y: 56 },
-    { id: 'l10', x: 65, y: 68 },
-    { id: 'l11', x: 78, y: 74 },
-    { id: 'l12', x: 12, y: 78 },
-  ]), []);
-  const [cleanedIds, setCleanedIds] = useState([]);
-  const [cursor, setCursor] = useState(null);
-  const [done, setDone] = useState(false);
-
-  const cleanAt = (x, y) => {
-    setCursor({ x, y });
-    setCleanedIds((prev) => {
-      const next = [...prev];
-      lintPoints.forEach((point) => {
-        if (!next.includes(point.id) && distance({ x, y }, point) < 12) {
-          next.push(point.id);
-        }
-      });
-      return next;
-    });
-  };
-
-  useEffect(() => {
-    if (!done && cleanedIds.length === lintPoints.length) {
-      setDone(true);
-      playSoftTone('success', soundEnabled);
-      setTimeout(() => onComplete(), 550);
-    }
-  }, [cleanedIds.length, done, lintPoints.length, onComplete, soundEnabled]);
-
-  return (
-    <CozyBoard
-      footer={<Text style={styles.progressText}>{cleanedIds.length}/{lintPoints.length} pelusas fuera</Text>}
-    >
-      <View
-        style={[styles.surfaceBoard, { backgroundColor: variant?.boardColor || '#dbcab6' }]}
-        onStartShouldSetResponder={() => true}
-        onMoveShouldSetResponder={() => true}
-        onResponderGrant={(event) => cleanAt(event.nativeEvent.locationX / 3.1, event.nativeEvent.locationY / 2.45)}
-        onResponderMove={(event) => cleanAt(event.nativeEvent.locationX / 3.1, event.nativeEvent.locationY / 2.45)}
-        onResponderRelease={() => setCursor(null)}
-      >
-        <View style={[styles.surfaceGlow, { opacity: cleanedIds.length / lintPoints.length }]} />
-        {lintPoints.map((point) => {
-          const cleaned = cleanedIds.includes(point.id);
-          return (
-            <View
-              key={point.id}
-              style={[
-                styles.lintDot,
-                {
-                  left: `${point.x}%`,
-                  top: `${point.y}%`,
-                  opacity: cleaned ? 0 : 1,
-                  transform: [{ scale: cleaned ? 0.4 : 1 }],
-                },
-              ]}
-            />
-          );
-        })}
-        {cursor ? <View style={[styles.cleanCursor, { left: `${cursor.x}%`, top: `${cursor.y}%` }]} /> : null}
-        {done ? <Text style={styles.successMark}>Listito</Text> : null}
-      </View>
-    </CozyBoard>
   );
 }
 
@@ -604,12 +530,13 @@ function BedGame({ onComplete, variant, soundEnabled }) {
 }
 
 const GAME_COMPONENTS = {
-  lint: LintSweepGame,
+  lint: SnoreLintGame,
   roller: RollerGame,
   laundry: LaundryGame,
   misplaced: MisplacedGame,
   bath: BubbleBathGame,
   bed: BedGame,
+  rooftop: RooftopAdventureGame,
 };
 
 export function MiniGameModal({ visible, gameKey, onClose, onReward }) {
@@ -666,7 +593,13 @@ export function MiniGameModal({ visible, gameKey, onClose, onReward }) {
             </TouchableOpacity>
           </View>
 
-          <GameComponent onComplete={handleComplete} variant={variant} soundEnabled={settings.soundEnabled} />
+          {gameKey === 'lint' ? (
+            <View style={{ height: 520 }}>
+              <GameComponent onComplete={handleComplete} onClose={onClose} variant={variant} soundEnabled={settings.soundEnabled} />
+            </View>
+          ) : (
+            <GameComponent onComplete={handleComplete} onClose={onClose} variant={variant} soundEnabled={settings.soundEnabled} />
+          )}
 
           {showResult ? (
             <View style={styles.resultOverlay}>
